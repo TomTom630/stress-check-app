@@ -110,6 +110,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
 .modal-btns{display:flex;gap:8px}
 .modal-btns button{flex:1}
 .staff-summary{margin-bottom:10px;font-size:12px;padding:8px 11px;background:#f5f5f0;border-radius:6px;color:#666;line-height:1.65}
+
+@keyframes bExpand{0%,100%{letter-spacing:0px}50%{letter-spacing:3px}}
+@keyframes bCompress{0%,100%{letter-spacing:2px}50%{letter-spacing:-1px}}
 </style>
 </head>
 <body>
@@ -147,6 +150,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
     <div class="alert-info">スマホカメラでHRV（心拍変動）を60秒計測し、自律神経バランスを確認します。</div>
     <button class="btn btn-primary" style="margin-bottom:8px" onclick="go('measure')">計測開始（カメラ＋質問票）</button>
     <button class="btn btn-secondary" onclick="skipToQ()">質問票のみで実施</button>
+    <div style="margin-top:8px"><button class="btn btn-secondary" onclick="go('breath');bSwitchMode(0);bDraw(22,false,'')">呼吸ガイド（ベースライン / コヒーレント）</button></div>
   </div>
   <div id="pane-hist" style="display:none"><div id="hist-content"></div></div>
   <div id="pane-trend" style="display:none">
@@ -281,6 +285,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
   </div>
 </div>
 
+</div>
+
+
+<div id="s-breath" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('menu')">←</button>
+    <div class="screen-title">呼吸ガイド</div>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:12px">
+    <button id="btab0" onclick="bSwitchMode(0)" style="flex:1;padding:9px;border:.5px solid #e8e8e4;border-radius:8px;background:#378ADD;color:#fff;font-size:13px;cursor:pointer;font-family:inherit">ベースライン 30秒</button>
+    <button id="btab1" onclick="bSwitchMode(1)" style="flex:1;padding:9px;border:.5px solid #e8e8e4;border-radius:8px;background:#fff;color:#888;font-size:13px;cursor:pointer;font-family:inherit">コヒーレント 60秒</button>
+  </div>
+  <div class="card">
+    <div style="text-align:center"><span id="bbdg" style="display:inline-block;font-size:11px;padding:2px 10px;border-radius:10px;background:#E6F1FB;color:#0C447C;margin-bottom:10px">通常呼吸・安静</span></div>
+    <div style="height:52px;display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+      <div id="bptxt" style="font-size:26px;font-weight:500;color:#888">準備</div>
+    </div>
+    <div style="display:flex;justify-content:center;align-items:center;height:160px;margin-bottom:10px">
+      <canvas id="bcv" width="300" height="160" style="width:300px;height:160px"></canvas>
+    </div>
+    <div style="font-size:48px;font-weight:600;color:#1a1a1a;text-align:center;line-height:1" id="btnum">30</div>
+    <div style="font-size:12px;color:#888;text-align:center;margin-top:4px;margin-bottom:10px;min-height:16px" id="btsub">秒</div>
+    <div style="height:4px;background:#f5f5f0;border-radius:2px;overflow:hidden;margin-bottom:14px">
+      <div id="bfill" style="height:100%;border-radius:2px;width:0%;background:#378ADD;transition:width .1s"></div>
+    </div>
+    <button id="bsbtn" onclick="bHandleBtn()" style="width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;background:#1D9E75;color:#fff">計測開始</button>
+  </div>
+  <div id="bdonebox" style="display:none">
+    <div id="bdonemsg" style="background:#f5f5f0;border-radius:8px;padding:10px 14px;font-size:13px;color:#888;text-align:center;margin-bottom:10px;line-height:1.7"></div>
+    <button onclick="bDoReset()" style="width:100%;padding:11px;border:.5px solid #e8e8e4;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;background:transparent;color:#888">もう一度</button>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeME(event)">
@@ -588,6 +623,71 @@ function addClient(){
 
 loadClients();
 renderHome();
+
+var BM=0,bRunning=false,bStartT=0,bTid=null,bRafID=null,bEl=0,bPh='in',bAC=null;
+var BCFG=[{dur:30,guide:false,col:'#378ADD',bbg:'#E6F1FB',btc:'#0C447C',btext:'通常呼吸・安静'},{dur:60,guide:true,col:'#1D9E75',bbg:'#E1F5EE',btc:'#085041',btext:'コヒーレント呼吸'}];
+var BMIN=22,BMAX=65,bCurR=BMIN,bPhSec=0,bLastSec=-1;
+function bGetAC(){if(!bAC)bAC=new(window.AudioContext||window.webkitAudioContext)();return bAC;}
+function bTone(f,d,v){try{var c=bGetAC(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(0,c.currentTime);g.gain.linearRampToValueAtTime(v||0.25,c.currentTime+0.02);g.gain.linearRampToValueAtTime(0,c.currentTime+d);o.start();o.stop(c.currentTime+d+0.05);}catch(e){}}
+function bDoneSound(){bTone(523,0.15,0.35);setTimeout(function(){bTone(659,0.15,0.35)},200);setTimeout(function(){bTone(784,0.3,0.35)},400);}
+function bBreathTone(isIn){bTone(isIn?440:330,0.12,0.2);}
+function bSwitchMode(m){
+  if(bRunning)return;BM=m;var cfg=BCFG[m];
+  document.getElementById('btab0').style.background=m===0?'#378ADD':'#fff';document.getElementById('btab0').style.color=m===0?'#fff':'#888';
+  document.getElementById('btab1').style.background=m===1?'#1D9E75':'#fff';document.getElementById('btab1').style.color=m===1?'#fff':'#888';
+  var b=document.getElementById('bbdg');b.style.background=cfg.bbg;b.style.color=cfg.btc;b.textContent=cfg.btext;
+  document.getElementById('bfill').style.background=cfg.col;document.getElementById('btnum').textContent=cfg.dur;document.getElementById('btsub').textContent='秒';
+  bSetPh('準備','#888','');document.getElementById('bfill').style.width='0%';document.getElementById('bdonebox').style.display='none';
+  bCurR=BMIN;bPhSec=0;bLastSec=-1;bDraw(BMIN,false,'');
+}
+function bHandleBtn(){if(bRunning)bStopAll();else bStartM();}
+function bStartM(){
+  bRunning=true;bStartT=Date.now();bEl=0;bPh='in';bCurR=BMIN;bPhSec=1;bLastSec=-1;var cfg=BCFG[BM];
+  var btn=document.getElementById('bsbtn');btn.textContent='中止';btn.style.background='#f5f5f0';btn.style.color='#1a1a1a';
+  document.getElementById('bdonebox').style.display='none';
+  if(cfg.guide){bSetPh('吸って','#1D9E75','expand');bBreathTone(true);}
+  else{bSetPh('通常呼吸','#888','');document.getElementById('btsub').textContent='自然に呼吸してください';}
+  bTid=setInterval(bOnTick,100);bRafID=requestAnimationFrame(bAnimLoop);
+}
+function bOnTick(){
+  var cfg=BCFG[BM],el=Math.min((Date.now()-bStartT)/1000,cfg.dur);
+  document.getElementById('btnum').textContent=Math.ceil(cfg.dur-el);
+  document.getElementById('bfill').style.width=(el/cfg.dur*100)+'%';
+  if(cfg.guide){
+    bEl+=0.1;var pos=bEl%12,np=pos<6?'in':'out';
+    if(np!==bPh){bPh=np;bBreathTone(np==='in');bSetPh(np==='in'?'吸って':'吐いて',np==='in'?'#1D9E75':'#378ADD',np==='in'?'expand':'compress');}
+    var s=Math.max(1,Math.min(6,np==='in'?Math.ceil(6-pos):Math.ceil(6-(pos-6))));
+    if(s!==bLastSec){bLastSec=s;bPhSec=s;}
+  }
+  if(el>=cfg.dur)bFinishM();
+}
+function bAnimLoop(){
+  if(!bRunning)return;var cfg=BCFG[BM];
+  if(cfg.guide){var pos=bEl%12,t=pos<6?(pos/6):(1-(pos-6)/6),e=t<0.5?(2*t*t):(1-2*(1-t)*(1-t));
+    bCurR=bCurR+(BMIN+(BMAX-BMIN)*e-bCurR)*0.06;bDraw(bCurR,true,String(bPhSec),bPh==='in'?'#1D9E75':'#378ADD');
+  }else{var wt=(Date.now()-bStartT)/1000;bCurR=BMIN+(BMAX-BMIN)*0.3*(1+Math.sin(wt*0.7-Math.PI/2))/2;bDraw(bCurR,true,'',BCFG[BM].col);}
+  bRafID=requestAnimationFrame(bAnimLoop);
+}
+function bDraw(r,active,label,color){
+  var cv=document.getElementById('bcv');if(!cv)return;
+  var ctx=cv.getContext('2d'),W=300,H=160,cx=W/2,cy=H/2,col=color||BCFG[BM].col;
+  ctx.clearRect(0,0,W,H);
+  for(var i=3;i>=1;i--){ctx.beginPath();ctx.arc(cx,cy,r*(1+i*0.22),0,Math.PI*2);ctx.fillStyle=col;ctx.globalAlpha=active?(0.05/i):0.02;ctx.fill();}
+  ctx.globalAlpha=1;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=col;ctx.globalAlpha=active?0.15:0.06;ctx.fill();ctx.globalAlpha=1;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.globalAlpha=active?0.85:0.25;ctx.stroke();ctx.globalAlpha=1;
+  if(label&&active){ctx.fillStyle=col;ctx.globalAlpha=0.9;ctx.font='500 26px -apple-system,BlinkMacSystemFont,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,cx,cy);ctx.globalAlpha=1;}
+}
+function bFinishM(){
+  bStopAll();bDoneSound();document.getElementById('btnum').textContent='0';document.getElementById('bfill').style.width='100%';
+  bSetPh('完了','#888','');document.getElementById('btsub').textContent='';
+  document.getElementById('bdonemsg').textContent=BM===0?'ベースライン計測が完了しました。\nコヒーレントタブで比較計測もできます。':'コヒーレント呼吸が完了しました。\n自律神経が整った状態です。';
+  document.getElementById('bdonebox').style.display='block';bCurR=BMIN;bDraw(BMIN,false,'');
+}
+function bStopAll(){clearInterval(bTid);cancelAnimationFrame(bRafID);bRunning=false;var btn=document.getElementById('bsbtn');btn.textContent='計測開始';btn.style.background='#1D9E75';btn.style.color='#fff';}
+function bDoReset(){bStopAll();var cfg=BCFG[BM];document.getElementById('btnum').textContent=cfg.dur;document.getElementById('btsub').textContent='秒';bSetPh('準備','#888','');document.getElementById('bfill').style.width='0%';document.getElementById('bdonebox').style.display='none';bCurR=BMIN;bPhSec=0;bLastSec=-1;bDraw(BMIN,false,'');}
+function bSetPh(txt,col,anim){var el=document.getElementById('bptxt');el.textContent=txt;el.style.color=col;el.style.animation='none';if(anim==='expand')el.style.animation='bExpand 1.5s ease-in-out infinite';else if(anim==='compress')el.style.animation='bCompress 0.8s ease-in-out infinite';}
+
 </script>
 </body>
 </html>
