@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ストレスチェック | Alive Biofeedback 簡易版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:#f5f5f0;min-height:100vh;color:#1a1a1a}
+.app{max-width:480px;margin:0 auto;padding:1rem;min-height:100vh}
+.screen{display:none}.screen.active{display:block}
+.logo{text-align:center;padding:1.5rem 0 1rem}
+.logo-text{font-size:24px;font-weight:600;color:#1a1a1a;letter-spacing:-.5px}
+.logo-sub{font-size:13px;color:#888;margin-top:4px}
+.connected-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#085041;background:#E1F5EE;padding:3px 10px;border-radius:10px;margin-top:6px}
+.dot-green{width:6px;height:6px;border-radius:50%;background:#1D9E75}
+.card{background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:1.25rem;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.section-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.client-list{display:flex;flex-direction:column;gap:8px}
+.client-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #e8e8e4;border-radius:8px;cursor:pointer;transition:background .15s;background:#fff}
+.client-item:hover{background:#f9f9f7}
+.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.client-name{font-size:15px;font-weight:500;color:#1a1a1a}
+.client-last{font-size:12px;color:#888;margin-top:2px}
+.add-btn{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px dashed #ccc;border-radius:8px;cursor:pointer;color:#888;font-size:14px;transition:background .15s;margin-top:8px}
+.add-btn:hover{background:#f9f9f7}
+.plus{width:28px;height:28px;border-radius:50%;background:#f5f5f0;display:flex;align-items:center;justify-content:center;font-size:18px}
+.header-bar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem}
+.back-btn{width:34px;height:34px;border-radius:50%;border:1px solid #e8e8e4;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;line-height:1}
+.back-btn:hover{background:#f5f5f0}
+.screen-title{font-size:18px;font-weight:600;color:#1a1a1a}
+.nav-bar{display:flex;gap:4px;margin-bottom:1rem}
+.nav-btn{flex:1;padding:9px 4px;border:1px solid #e8e8e4;border-radius:8px;background:#fff;font-size:12px;cursor:pointer;color:#888;text-align:center;font-family:inherit}
+.nav-btn.active{background:#f5f5f0;color:#1a1a1a;border-color:#ccc;font-weight:500}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;font-family:inherit}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:#1D9E75;color:#fff}.btn-primary:hover{opacity:.9}
+.btn-secondary{background:#f5f5f0;color:#1a1a1a;border:1px solid #e8e8e4}
+.btn-secondary:hover{background:#ebebeb}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.alert-info{background:#E1F5EE;border:1px solid #9FE1CB;border-radius:8px;padding:10px 14px;font-size:13px;color:#085041;margin-bottom:12px;line-height:1.6}
+.measure-area{background:#f5f5f0;border-radius:12px;padding:1.5rem;text-align:center;margin-bottom:1rem;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.timer-circle{position:relative;width:110px;height:110px;margin:0 auto 1rem}
+.timer-circle svg{transform:rotate(-90deg)}
+.timer-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:600;color:#1a1a1a}
+.progress-wrap{height:4px;background:#e8e8e4;border-radius:2px;margin:.75rem 0;overflow:hidden}
+.progress-fill{height:100%;background:#1D9E75;border-radius:2px;transition:width .5s linear}
+.q-dots{display:flex;gap:4px;margin-bottom:1.25rem}
+.q-dot{flex:1;height:3px;border-radius:2px;background:#e8e8e4}
+.q-dot.done{background:#1D9E75}.q-dot.cur{background:#1D9E75;opacity:.5}
+.q-text{font-size:16px;font-weight:500;color:#1a1a1a;line-height:1.6;margin-bottom:1.25rem}
+.scale-btns{display:flex;gap:5px;margin-bottom:.5rem}
+.scale-btn{flex:1;padding:13px 0;border:1px solid #e8e8e4;border-radius:8px;background:#fff;cursor:pointer;font-size:15px;font-weight:500;color:#666;transition:all .15s;font-family:inherit}
+.scale-btn:hover{background:#f5f5f0}
+.scale-btn.sel{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.scale-labels{display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:1rem}
+.score-ring{width:96px;height:96px;margin:0 auto .75rem;position:relative}
+.score-ring svg{transform:rotate(-90deg)}
+.score-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:600}
+.res-level{font-size:18px;font-weight:600;margin-bottom:6px}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.metric-card{background:#f5f5f0;border-radius:8px;padding:12px}
+.metric-name{font-size:11px;color:#888;margin-bottom:5px}
+.metric-val{font-size:20px;font-weight:600;color:#1a1a1a}
+.metric-unit{font-size:11px;color:#888}
+.metric-bar{height:3px;border-radius:2px;margin-top:8px;background:#e0e0db;overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:2px}
+.explain-summary{font-size:14px;font-weight:500;color:#1a1a1a;line-height:1.7;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0f0eb}
+.explain-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.explain-list li{font-size:13px;color:#333;line-height:1.65;padding-left:15px;position:relative}
+.explain-list li::before{content:"•";position:absolute;left:0;color:#1D9E75;font-weight:700}
+.staff-toggle{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#888;margin-bottom:8px;user-select:none}
+.staff-detail{display:none}.staff-detail.open{display:block}
+.staff-row{display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;padding:7px 0;border-bottom:1px solid #f0f0eb}
+.staff-row:last-child{border-bottom:none}
+.staff-key{color:#888}
+.staff-val{font-weight:500;color:#1a1a1a;margin-left:8px;text-align:right}
+.staff-interpret{font-size:11px;color:#aaa;margin-top:2px;line-height:1.4}
+.gp8-toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.toggle-switch{width:42px;height:24px;border-radius:12px;background:#e8e8e4;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none}
+.toggle-switch.on{background:#1D9E75}
+.toggle-knob{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch.on .toggle-knob{left:20px}
+.gp8-fields{display:flex;flex-direction:column;gap:10px}
+.gp8-row{display:flex;flex-direction:column;gap:4px}
+.gp8-row label{font-size:12px;color:#888;font-weight:500}
+.gp8-row select,.gp8-row textarea{width:100%;padding:9px 11px;border:1px solid #e8e8e4;border-radius:8px;font-size:13px;background:#f9f9f7;color:#1a1a1a;font-family:inherit}
+.gp8-row select:focus,.gp8-row textarea:focus{outline:none;border-color:#1D9E75}
+.gp8-row textarea{resize:vertical;min-height:70px;line-height:1.5}
+.history-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0eb}
+.history-item:last-child{border-bottom:none}
+.history-date{font-size:11px;color:#888;width:60px;flex-shrink:0}
+.history-badge{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.history-level{font-size:13px;font-weight:500;color:#1a1a1a}
+.history-sub{font-size:11px;color:#888}
+.gp8-badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:#E6F1FB;color:#0C447C;font-weight:500;margin-left:4px}
+.chart-wrap{position:relative;width:100%;height:160px;margin-top:8px}
+.save-status{text-align:center;font-size:13px;margin-top:10px;min-height:20px}
+.save-ok{color:#1D9E75;font-weight:500}
+.save-err{color:#D85A30}
+.save-ing{color:#888}
+.empty{text-align:center;padding:2rem 1rem;color:#888;font-size:14px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:1.5rem;width:90%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:1rem;color:#1a1a1a}
+.modal input{width:100%;padding:10px 12px;border:1px solid #e8e8e4;border-radius:8px;font-size:15px;background:#f9f9f7;color:#1a1a1a;margin-bottom:12px;font-family:inherit}
+.modal input:focus{outline:none;border-color:#1D9E75}
+.modal-btns{display:flex;gap:8px}
+.modal-btns button{flex:1}
+.staff-summary{margin-bottom:10px;font-size:12px;padding:8px 11px;background:#f5f5f0;border-radius:6px;color:#666;line-height:1.65}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div id="s-home" class="screen active">
+  <div class="logo">
+    <div class="logo-text">ストレスチェック</div>
+    <div class="logo-sub">Alive Biofeedback 簡易版</div>
+    <div style="display:flex;justify-content:center;margin-top:8px">
+      <div class="connected-badge"><div class="dot-green"></div>スプレッドシート接続済み</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-label">クライアントを選択</div>
+    <div class="client-list" id="client-list"></div>
+    <div class="add-btn" onclick="openModal()">
+      <div class="plus">+</div>
+      <span>新しいクライアントを追加</span>
+    </div>
+  </div>
+</div>
+
+<div id="s-menu" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('home')">←</button>
+    <div class="screen-title" id="menu-name"></div>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-btn active" id="tab-new" onclick="menuTab('new')">新規チェック</button>
+    <button class="nav-btn" id="tab-hist" onclick="menuTab('hist')">履歴</button>
+    <button class="nav-btn" id="tab-trend" onclick="menuTab('trend')">トレンド</button>
+  </div>
+  <div id="pane-new">
+    <div class="alert-info">スマホカメラでHRV（心拍変動）を60秒計測し、自律神経バランスを確認します。</div>
+    <button class="btn btn-primary" style="margin-bottom:8px" onclick="go('measure')">計測開始（カメラ＋質問票）</button>
+    <button class="btn btn-secondary" onclick="skipToQ()">質問票のみで実施</button>
+  </div>
+  <div id="pane-hist" style="display:none"><div id="hist-content"></div></div>
+  <div id="pane-trend" style="display:none">
+    <div class="card">
+      <div class="section-label">ストレススコア推移</div>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div id="s-measure" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('menu')">←</button>
+    <div class="screen-title">HRV 計測</div>
+  </div>
+  <div id="meas-pre" class="card">
+    <div class="measure-area">
+      <div style="font-size:48px;margin-bottom:.75rem">☝</div>
+      <div style="font-size:14px;color:#666;line-height:1.7;max-width:260px;text-align:center">
+        <strong style="color:#1a1a1a">カメラに指先をそっと当ててください。</strong><br><br>
+        静かに座り、ゆっくり呼吸しながら待ちます（吸う6秒・吐く6秒）。
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="startTimer()">計測開始（60秒）</button>
+  </div>
+  <div id="meas-run" style="display:none">
+    <div class="card">
+      <div class="measure-area">
+        <div class="timer-circle">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="46" fill="none" stroke="#e8e8e4" stroke-width="7"/>
+            <circle id="t-arc" cx="55" cy="55" r="46" fill="none" stroke="#1D9E75" stroke-width="7" stroke-dasharray="289" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <div class="timer-text" id="t-num">60</div>
+        </div>
+        <div style="font-size:13px;color:#888">指をカメラに当てたまま待ってください</div>
+      </div>
+      <div class="progress-wrap"><div class="progress-fill" id="t-prog" style="width:0%"></div></div>
+      <div style="font-size:12px;color:#888;text-align:center;margin-top:4px">吸う→6秒 ／ 吐く→6秒</div>
+    </div>
+  </div>
+</div>
+
+<div id="s-q" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('menu')">←</button>
+    <div class="screen-title">状態チェック</div>
+  </div>
+  <div class="card">
+    <div class="q-dots" id="qdots"></div>
+    <div class="q-text" id="qtext"></div>
+    <div class="scale-btns" id="qbtns"></div>
+    <div class="scale-labels"><span id="qlo"></span><span id="qhi"></span></div>
+  </div>
+</div>
+
+<div id="s-gp8" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('menu')">←</button>
+    <div class="screen-title">GP8 セッション連携</div>
+  </div>
+  <div class="card">
+    <div class="gp8-toggle-row">
+      <button class="toggle-switch" id="gp8-toggle" onclick="toggleGP8()"><div class="toggle-knob"></div></button>
+      <span style="font-size:14px;color:#555">今日のAliveセッションと連携する</span>
+    </div>
+    <div class="gp8-fields" id="gp8-fields" style="display:none">
+      <div class="gp8-row">
+        <label>タイミング</label>
+        <select id="gp8-timing">
+          <option value="">選択してください</option>
+          <option value="before">セッション前</option>
+          <option value="after">セッション後</option>
+          <option value="standalone">Aliveセッションなし（単独チェック）</option>
+        </select>
+      </div>
+      <div class="gp8-row">
+        <label>今日のAliveフィードバック種別</label>
+        <select id="gp8-fb">
+          <option value="">選択してください</option>
+          <option>SCL（皮膚コンダクタンス）</option>
+          <option>Smoothness / HRV</option>
+          <option>BVP振幅</option>
+          <option>平均心拍数</option>
+          <option>Valence（感情価）</option>
+          <option>Arousal（覚醒度）</option>
+          <option>複合フィードバック</option>
+        </select>
+      </div>
+      <div class="gp8-row">
+        <label>スタッフメモ（気づき・様子など）</label>
+        <textarea id="gp8-note" placeholder="例：呼吸が浅め、前回より落ち着いている など"></textarea>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="computeAndShow()">結果を表示</button>
+</div>
+
+<div id="s-result" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('menu')">←</button>
+    <div class="screen-title">チェック結果</div>
+  </div>
+  <div class="card" style="text-align:center;padding:1.5rem 1.25rem">
+    <div class="score-ring">
+      <svg width="96" height="96" viewBox="0 0 96 96">
+        <circle cx="48" cy="48" r="38" fill="none" stroke="#e8e8e4" stroke-width="7"/>
+        <circle id="r-arc" cx="48" cy="48" r="38" fill="none" stroke="#1D9E75" stroke-width="7" stroke-dasharray="239" stroke-dashoffset="239" stroke-linecap="round"/>
+      </svg>
+      <div class="score-num" id="r-score">--</div>
+    </div>
+    <div class="res-level" id="r-level">--</div>
+  </div>
+  <div class="metrics-grid" id="metrics-grid"></div>
+  <div class="card">
+    <div class="section-label">クライアントへの説明</div>
+    <div class="explain-summary" id="ex-summary"></div>
+    <ul class="explain-list" id="ex-list"></ul>
+  </div>
+  <div class="card">
+    <div class="staff-toggle" onclick="toggleStaff()">
+      <span id="staff-arrow">▶</span>
+      <span>スタッフ詳細データ（タップで開く）</span>
+    </div>
+    <div class="staff-detail" id="staff-detail">
+      <div id="staff-rows"></div>
+    </div>
+  </div>
+  <div style="margin-top:4px">
+    <button class="btn btn-primary" id="save-btn" onclick="saveAndSend()">保存してスプレッドシートに送信</button>
+    <div class="save-status" id="save-status"></div>
+  </div>
+</div>
+
+</div>
+
+<div class="modal-overlay" id="modal" onclick="closeME(event)">
+  <div class="modal">
+    <h3>新しいクライアント</h3>
+    <input type="text" id="new-name" placeholder="氏名を入力" />
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeMD()">キャンセル</button>
+      <button class="btn btn-primary" onclick="addClient()">追加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WEBHOOK='https://script.google.com/macros/s/AKfycbzLyGTCQikW2C67dPUM1plQ9lHFDLXN2PeRrOMnxFZHqrFeTd73POiaacu3A_ODjH1SIg/exec';
+const COLS=['#1D9E75','#378ADD','#D85A30','#BA7517','#993556','#534AB7'];
+const BGS=['#E1F5EE','#E6F1FB','#FAECE7','#FAEEDA','#FBEAF0','#EEEDFE'];
+const QS=[
+  {text:'今、体はリラックスできていますか？',lo:'全くない',hi:'とても'},
+  {text:'今の気持ちはポジティブですか？',lo:'否定的',hi:'ポジティブ'},
+  {text:'頭の中は静かで、落ち着いていますか？',lo:'全くない',hi:'とても'},
+  {text:'体にエネルギーや活力を感じますか？',lo:'疲れている',hi:'活力ある'},
+];
+
+let D={clients:[],cid:null,qa:[],hrR:null,skipHR:false,pendSess:null,gp8On:false};
+let curQ=0,tInt=null,tChart=null;
+
+// ローカルストレージからクライアント読み込み
+function loadClients(){
+  try{
+    const saved=localStorage.getItem('stress_clients');
+    if(saved) D.clients=JSON.parse(saved);
+    if(!D.clients.length){
+      D.clients=[
+        {id:1,name:'サンプル クライアント',col:0,sessions:[]},
+      ];
+    }
+  }catch(e){
+    D.clients=[{id:1,name:'サンプル クライアント',col:0,sessions:[]}];
+  }
+}
+function saveClients(){
+  try{localStorage.setItem('stress_clients',JSON.stringify(D.clients))}catch(e){}
+}
+
+function gc(){return D.clients.find(c=>c.id===D.cid)}
+
+function go(sc){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+sc).classList.add('active');
+  if(sc==='home')renderHome();
+  if(sc==='menu'){document.getElementById('menu-name').textContent=gc()?.name||'';menuTab('new')}
+  if(sc==='measure'){document.getElementById('meas-pre').style.display='block';document.getElementById('meas-run').style.display='none'}
+}
+
+function renderHome(){
+  const el=document.getElementById('client-list');el.innerHTML='';
+  D.clients.forEach(c=>{
+    const last=c.sessions&&c.sessions[0];
+    const init=c.name.split(/[\s　]+/).map(n=>n[0]).join('').slice(0,2);
+    const d=document.createElement('div');d.className='client-item';
+    d.innerHTML=`<div class="avatar" style="background:${BGS[c.col%BGS.length]};color:${COLS[c.col%COLS.length]}">${init}</div>
+    <div><div class="client-name">${c.name}</div>
+    <div class="client-last">${last?'最終: '+last.date+' ／ スコア '+last.score:'記録なし'}</div></div>`;
+    d.onclick=()=>{D.cid=c.id;go('menu')};el.appendChild(d);
+  });
+}
+
+function menuTab(t){
+  ['new','hist','trend'].forEach(x=>{
+    document.getElementById('pane-'+x).style.display=x===t?'block':'none';
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+  });
+  if(t==='hist')renderHist();
+  if(t==='trend')renderTrend();
+}
+
+function renderHist(){
+  const c=gc();const el=document.getElementById('hist-content');
+  if(!c||!c.sessions||!c.sessions.length){el.innerHTML='<div class="empty">記録がありません</div>';return}
+  const sc=s=>s>=75?'#1D9E75':s>=50?'#BA7517':'#D85A30';
+  const sb=s=>s>=75?'#E1F5EE':s>=50?'#FAEEDA':'#FAECE7';
+  el.innerHTML='<div class="card"><div>'+c.sessions.map(s=>`
+    <div class="history-item">
+      <div class="history-date">${s.date}</div>
+      <div class="history-badge" style="background:${sb(s.score)};color:${sc(s.score)}">${s.score}</div>
+      <div class="history-info">
+        <div class="history-level">${s.level}${s.gp8&&s.gp8.on?'<span class="gp8-badge">GP8連携</span>':''}</div>
+        <div class="history-sub">HR: ${s.hr||'--'} bpm ／ HRV: ${s.hrv||'--'} ms</div>
+      </div>
+    </div>`).join('')+'</div></div>';
+}
+
+function renderTrend(){
+  if(tChart){tChart.destroy();tChart=null}
+  const c=gc();
+  const pane=document.getElementById('pane-trend');
+  if(!c||!c.sessions||!c.sessions.length){pane.innerHTML='<div class="card"><div class="empty">データがありません</div></div>';return}
+  pane.innerHTML='<div class="card"><div class="section-label">ストレススコア推移</div><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>';
+  const sorted=[...c.sessions].reverse();
+  tChart=new Chart(document.getElementById('trendChart'),{
+    type:'line',
+    data:{labels:sorted.map(s=>s.date),datasets:[{
+      label:'スコア',data:sorted.map(s=>s.score),
+      borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',
+      borderWidth:2,pointBackgroundColor:'#1D9E75',pointRadius:5,tension:.3,fill:true
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#888',font:{size:11}}},
+        x:{grid:{display:false},ticks:{color:'#888',font:{size:11}}}}}
+  });
+}
+
+function skipToQ(){D.skipHR=true;D.hrR={hr:null,hrv:null};D.qa=[];curQ=0;go('q');renderQ()}
+
+function startTimer(){
+  document.getElementById('meas-pre').style.display='none';
+  document.getElementById('meas-run').style.display='block';
+  let s=60;
+  const arc=document.getElementById('t-arc'),num=document.getElementById('t-num'),prog=document.getElementById('t-prog');
+  tInt=setInterval(()=>{
+    s--;num.textContent=s;
+    arc.style.strokeDashoffset=289*(s/60);
+    prog.style.width=((60-s)/60*100)+'%';
+    if(s<=0){
+      clearInterval(tInt);
+      D.hrR={hr:Math.round(58+Math.random()*22),hrv:Math.round(22+Math.random()*38)};
+      D.skipHR=false;D.qa=[];curQ=0;go('q');renderQ();
+    }
+  },1000);
+}
+
+function renderQ(){
+  const q=QS[curQ];
+  document.getElementById('qdots').innerHTML=QS.map((_,i)=>`<div class="q-dot ${i<curQ?'done':i===curQ?'cur':''}"></div>`).join('');
+  document.getElementById('qtext').textContent=q.text;
+  document.getElementById('qlo').textContent=q.lo;
+  document.getElementById('qhi').textContent=q.hi;
+  document.getElementById('qbtns').innerHTML=[1,2,3,4,5].map(v=>`<button class="scale-btn" onclick="ansQ(${v})">${v}</button>`).join('');
+}
+
+function ansQ(v){
+  document.querySelectorAll('.scale-btn').forEach((b,i)=>{if(i===v-1)b.classList.add('sel')});
+  setTimeout(()=>{D.qa.push(v);curQ++;if(curQ<QS.length)renderQ();else{go('gp8');D.gp8On=false;resetGP8()}},280);
+}
+
+function toggleGP8(){
+  D.gp8On=!D.gp8On;
+  document.getElementById('gp8-toggle').classList.toggle('on',D.gp8On);
+  document.getElementById('gp8-fields').style.display=D.gp8On?'flex':'none';
+}
+function resetGP8(){
+  document.getElementById('gp8-toggle').classList.remove('on');
+  document.getElementById('gp8-fields').style.display='none';
+  ['gp8-timing','gp8-fb'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('gp8-note').value='';
+}
+
+function computeAndShow(){
+  const ans=D.qa;
+  const qS=Math.round(ans.reduce((a,b)=>a+b,0)/(ans.length*5)*100);
+  let hr=null,hrv=null,hrvS=65;
+  if(!D.skipHR&&D.hrR&&D.hrR.hr){
+    hr=D.hrR.hr;hrv=D.hrR.hrv;
+    const pen=Math.max(0,(hr-65)*1.2);
+    const bon=Math.min(40,hrv*.85);
+    hrvS=Math.round(Math.max(10,Math.min(100,50+bon-pen)));
+  }
+  const score=D.skipHR?qS:Math.round(qS*.5+hrvS*.5);
+  const scl=ans[0]||3,val=ans[1]||3,smo=ans[2]||3,aro=ans[3]||3;
+  const lf_hf=hrv?(hrv>40?+(1.4+Math.random()*.6).toFixed(2):hrv>25?+(2.2+Math.random()).toFixed(2):+(3.5+Math.random()*1.5).toFixed(2)):null;
+
+  let level,color,summary,bullets,staffInterp;
+  if(score>=75){
+    level='良好';color='#1D9E75';
+    summary='自律神経のバランスが整っており、心身ともに安定した状態です。';
+    bullets=['心拍のリズムが滑らかで、体がしっかりリラックスできています','気持ちも比較的落ち着いており、集中しやすい状態です','このような状態を意識的に増やしていくことが目標です'];
+    staffInterp='HRVが良好範囲。SCL・Smoothness安定。引き続き現状のプロトコルを維持推奨。';
+  } else if(score>=55){
+    level='やや低め';color='#BA7517';
+    summary='軽度のストレス傾向があります。呼吸や休息を意識することで改善できます。';
+    bullets=['心拍のリズムが少し乱れており、自律神経がやや緊張気味です','頭や体が少し張り詰めている可能性があります','深呼吸（吸う6秒・吐く6秒）を試すとすぐに楽になることがあります','次のAliveセッションでさらに詳しく確認しましょう'];
+    staffInterp='SCLまたはHRVに軽度の乱れ。Smoothnessを優先フィードバックに設定推奨。呼吸ペーサー活用を検討。';
+  } else {
+    level='要注意';color='#D85A30';
+    summary='ストレス負荷が高い状態です。無理せず、今日は特に休息を大切にしてください。';
+    bullets=['心拍の乱れが見られ、体が緊張状態に入りやすくなっています','BVP振幅が低下している可能性があり、末梢への血流が減っているサインです','今日は大きな決断や負荷の高い作業を避けることをおすすめします','Aliveセッションで呼吸とSCL・BVPの状態を詳しく確認しましょう'];
+    staffInterp='HRV・SCLともに低値の可能性。BVP振幅トレーニングを導入検討。セッション前後の比較を必ず記録。';
+  }
+
+  D.pendSess={
+    date:new Date().toLocaleDateString('ja-JP',{month:'2-digit',day:'2-digit'}).replace(/\//g,'/'),
+    score,level,hr:hr||'--',hrv:hrv||'--',scl,valence:val,smoothness:smo,arousal:aro,
+    lf_hf,color,summary,bullets,staffInterp,
+    clientName:gc()?.name||'',
+    gp8:{
+      on:D.gp8On,
+      timing:document.getElementById('gp8-timing').value,
+      fb:document.getElementById('gp8-fb').value,
+      note:document.getElementById('gp8-note').value,
+    },
+  };
+  go('result');
+  setTimeout(()=>renderResult(D.pendSess),80);
+}
+
+function renderResult(sess){
+  const arc=document.getElementById('r-arc');
+  arc.style.stroke=sess.color;
+  arc.style.strokeDashoffset=239-(sess.score/100)*239;
+  document.getElementById('r-score').textContent=sess.score;
+  document.getElementById('r-level').textContent=sess.level;
+  document.getElementById('ex-summary').textContent=sess.summary;
+  document.getElementById('ex-list').innerHTML=sess.bullets.map(b=>`<li>${b}</li>`).join('');
+
+  const metrics=[
+    {name:'心拍数',val:sess.hr,unit:'bpm',fill:'#378ADD',bar:typeof sess.hr==='number'?Math.round((1-Math.max(0,(sess.hr-55)/50))*100):0},
+    {name:'HRV（RMSSD）',val:sess.hrv,unit:'ms',fill:'#1D9E75',bar:typeof sess.hrv==='number'?Math.min(100,Math.round(sess.hrv*1.8)):0},
+    {name:'落ち着き（SCL）',val:sess.scl+'/5',unit:'',fill:'#BA7517',bar:sess.scl*20},
+    {name:'Smoothness',val:sess.smoothness+'/5',unit:'',fill:'#534AB7',bar:sess.smoothness*20},
+  ];
+  document.getElementById('metrics-grid').innerHTML=metrics.map(m=>`
+    <div class="metric-card">
+      <div class="metric-name">${m.name}</div>
+      <div><span class="metric-val">${m.val}</span><span class="metric-unit"> ${m.unit}</span></div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:${m.bar}%;background:${m.fill}"></div></div>
+    </div>`).join('');
+
+  const rows=[
+    ['LF/HF 推定',sess.lf_hf||'--','LF/HF 1〜2が理想。高いほど交感神経優位'],
+    ['Valence（感情価）',sess.valence+'/5','3以下はネガティブ傾向。Alive Valenceで確認推奨'],
+    ['Arousal（覚醒度）',sess.arousal+'/5','4以上は過覚醒の可能性。SCL安定性を確認'],
+    ['HRV Smoothness',sess.smoothness+'/5','2以下はスムースネストレーニング優先'],
+    ['SCL 安定性',sess.scl+'/5','低値はSCLスパイク頻発の可能性'],
+  ];
+  let html=`<div class="staff-summary">${sess.staffInterp}</div>`;
+  html+=rows.map(r=>`<div class="staff-row"><div><div class="staff-key">${r[0]}</div><div class="staff-interpret">${r[2]}</div></div><div class="staff-val">${r[1]}</div></div>`).join('');
+  if(sess.gp8&&sess.gp8.on){
+    const timingLabel={before:'セッション前',after:'セッション後',standalone:'単独'}[sess.gp8.timing]||'--';
+    html+=`<div style="margin-top:12px;padding:10px;background:#f5f5f0;border-radius:8px">
+      <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:8px">GP8 セッション情報</div>
+      <div class="staff-row"><span class="staff-key">タイミング</span><span class="staff-val">${timingLabel}</span></div>
+      <div class="staff-row"><span class="staff-key">フィードバック種別</span><span class="staff-val">${sess.gp8.fb||'--'}</span></div>
+      ${sess.gp8.note?`<div style="font-size:12px;color:#666;margin-top:8px;line-height:1.6">${sess.gp8.note}</div>`:''}
+    </div>`;
+  }
+  document.getElementById('staff-rows').innerHTML=html;
+  document.getElementById('save-status').textContent='';
+  document.getElementById('save-btn').disabled=false;
+  document.getElementById('save-btn').textContent='保存してスプレッドシートに送信';
+}
+
+function toggleStaff(){
+  const el=document.getElementById('staff-detail');
+  el.classList.toggle('open');
+  document.getElementById('staff-arrow').textContent=el.classList.contains('open')?'▼':'▶';
+}
+
+async function saveAndSend(){
+  if(!D.pendSess)return;
+  const btn=document.getElementById('save-btn');
+  const status=document.getElementById('save-status');
+  btn.disabled=true;btn.textContent='送信中...';
+  status.className='save-status save-ing';
+  status.textContent='スプレッドシートに保存しています...';
+  const p=D.pendSess;
+  const payload={
+    date:p.date,clientName:p.clientName,score:p.score,level:p.level,
+    hr:p.hr,hrv:p.hrv,scl:p.scl,valence:p.valence,
+    smoothness:p.smoothness,arousal:p.arousal,lf_hf:p.lf_hf||'',
+    gp8On:p.gp8&&p.gp8.on?true:false,
+    gp8Timing:p.gp8&&p.gp8.timing?p.gp8.timing:'',
+    gp8Fb:p.gp8&&p.gp8.fb?p.gp8.fb:'',
+    gp8Note:p.gp8&&p.gp8.note?p.gp8.note:'',
+  };
+  try{
+    await fetch(WEBHOOK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const c=gc();
+    if(c){if(!c.sessions)c.sessions=[];c.sessions.unshift(D.pendSess);}
+    saveClients();
+    D.pendSess=null;
+    status.className='save-status save-ok';
+    status.textContent='✓ スプレッドシートに保存しました';
+    btn.textContent='保存済み';
+    setTimeout(()=>go('menu'),1800);
+  }catch(err){
+    status.className='save-status save-err';
+    status.textContent='送信エラー。ネットワークを確認してください。';
+    btn.disabled=false;btn.textContent='再送信';
+  }
+}
+
+function openModal(){
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('new-name').focus(),100);
+}
+function closeME(e){if(e.target===document.getElementById('modal'))closeMD()}
+function closeMD(){document.getElementById('modal').classList.remove('open');document.getElementById('new-name').value=''}
+function addClient(){
+  const n=document.getElementById('new-name').value.trim();if(!n)return;
+  D.clients.push({id:Date.now(),name:n,col:D.clients.length%COLS.length,sessions:[]});
+  saveClients();closeMD();renderHome();
+}
+
+loadClients();
+renderHome();
+</script>
+</body>
+</html>
