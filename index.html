@@ -370,6 +370,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
   </div>
   <div id="bdonebox" style="display:none">
     <div id="bdonemsg" style="background:#f5f5f0;border-radius:8px;padding:10px 14px;font-size:13px;color:#888;text-align:center;margin-bottom:10px;line-height:1.7"></div>
+    <button id="bNextBtn" onclick="bGoToQ()" style="width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;background:#1D9E75;color:#fff;margin-bottom:8px">質問票へ進む →</button>
     <button onclick="bDoReset()" style="width:100%;padding:11px;border:.5px solid #e8e8e4;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;background:transparent;color:#888">もう一度</button>
   </div>
 </div>
@@ -833,12 +834,17 @@ function bDraw(r,active,label,color){
   if(label&&active){ctx.fillStyle=col;ctx.globalAlpha=0.9;ctx.font='500 26px -apple-system,BlinkMacSystemFont,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,cx,cy);ctx.globalAlpha=1;}
 }
 function bFinishM(){
-  bStopAll();bDoneSound();document.getElementById('btnum').textContent='0';document.getElementById('bfill').style.width='100%';
+  bStopAll();bDoneSound();bDoneSound();document.getElementById('btnum').textContent='0';document.getElementById('bfill').style.width='100%';
   bSetPh('完了','#888','');document.getElementById('btsub').textContent='';
-  document.getElementById('bdonemsg').textContent=BM===0?'ベースライン計測が完了しました。\nコヒーレントタブで比較計測もできます。':'コヒーレント呼吸が完了しました。\n自律神経が整った状態です。';
+  document.getElementById('bdonemsg').textContent=BM===0?'ベースライン計測が完了しました。\n続けてコヒーレント呼吸、または質問票へ進んでください。':'コヒーレント呼吸が完了しました。\n自律神経が整った状態で質問票へ進みましょう。';
   document.getElementById('bdonebox').style.display='block';bCurR=BMIN;bDraw(BMIN,false,'');
 }
 function bStopAll(){clearInterval(bTid);cancelAnimationFrame(bRafID);bRunning=false;var btn=document.getElementById('bsbtn');btn.textContent='計測開始';btn.style.background='#1D9E75';btn.style.color='#fff';}
+function bGoToQ(){
+  bDoReset();
+  D.qa=[];D.skipHR=true;D.hrR={hr:null,hrv:null};
+  curQ=0;go('q');renderQ();
+}
 function bDoReset(){bStopAll();var cfg=BCFG[BM];document.getElementById('btnum').textContent=cfg.dur;document.getElementById('btsub').textContent='秒';bSetPh('準備','#888','');document.getElementById('bfill').style.width='0%';document.getElementById('bdonebox').style.display='none';bCurR=BMIN;bPhSec=0;bLastSec=-1;bDraw(BMIN,false,'');}
 function bSetPh(txt,col,anim){var el=document.getElementById('bptxt');el.textContent=txt;el.style.color=col;el.style.animation='none';if(anim==='expand')el.style.animation='bExpand 1.5s ease-in-out infinite';else if(anim==='compress')el.style.animation='bCompress 0.8s ease-in-out infinite';}
 
