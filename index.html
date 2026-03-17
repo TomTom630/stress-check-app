@@ -149,10 +149,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
     <button class="nav-btn" id="tab-trend" onclick="menuTab('trend')">トレンド</button>
   </div>
   <div id="pane-new">
-    <div class="alert-info">スマホカメラでHRV（心拍変動）を60秒計測し、自律神経バランスを確認します。</div>
-    <button class="btn btn-primary" style="margin-bottom:8px" onclick="go('measure')">計測開始（カメラ＋質問票）</button>
+    <div style="background:linear-gradient(135deg,#0F6E56,#1D9E75);border-radius:12px;padding:1.25rem;margin-bottom:12px;color:#fff">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.8px;opacity:.8;margin-bottom:8px">自律神経チェック</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:14px;line-height:1.5">ベースライン計測 → コヒーレント呼吸で<br>自律神経の状態を確認します</div>
+      <button onclick="go('breath');bSwitchMode(0);bDraw(22,false,'')" style="width:100%;padding:12px;border:none;border-radius:10px;background:#fff;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">計測を開始する →</button>
+    </div>
     <button class="btn btn-secondary" onclick="skipToQ()">質問票のみで実施</button>
-    <div style="margin-top:8px"><button class="btn btn-secondary" onclick="go('breath');bSwitchMode(0);bDraw(22,false,'')">呼吸ガイド（ベースライン / コヒーレント）</button></div>
   </div>
   <div id="pane-hist" style="display:none"><div id="hist-content"></div></div>
   <div id="pane-trend" style="display:none">
