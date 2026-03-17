@@ -113,6 +113,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
 
 @keyframes bExpand{0%,100%{letter-spacing:0px}50%{letter-spacing:3px}}
 @keyframes bCompress{0%,100%{letter-spacing:2px}50%{letter-spacing:-1px}}
+.precheck-btn{padding:8px 14px;border:.5px solid #e8e8e4;border-radius:20px;background:#fff;font-size:13px;cursor:pointer;color:#666;font-family:inherit;transition:all .15s}
+.precheck-btn.sel{background:#1D9E75;color:#fff;border-color:#1D9E75}
 </style>
 </head>
 <body>
@@ -288,6 +290,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
 </div>
 
 
+
+<div id="s-precheck" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('home')">←</button>
+    <div class="screen-title" id="precheck-name"></div>
+  </div>
+  <div class="card">
+    <div class="section-label">計測前の状態確認</div>
+    <div style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">正確な解析のために、現在の状態を教えてください。</div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:8px">最後の食事</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px" id="meal-btns">
+        <button class="precheck-btn" onclick="selectPre('meal',this,'30分以内')">30分以内</button>
+        <button class="precheck-btn" onclick="selectPre('meal',this,'1〜2時間')">1〜2時間</button>
+        <button class="precheck-btn" onclick="selectPre('meal',this,'2〜4時間')">2〜4時間</button>
+        <button class="precheck-btn" onclick="selectPre('meal',this,'4時間以上')">4時間以上</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:8px">カフェイン摂取</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button class="precheck-btn" onclick="selectPre('caffeine',this,'なし')">なし</button>
+        <button class="precheck-btn" onclick="selectPre('caffeine',this,'1時間以内')">1時間以内</button>
+        <button class="precheck-btn" onclick="selectPre('caffeine',this,'1〜3時間')">1〜3時間</button>
+        <button class="precheck-btn" onclick="selectPre('caffeine',this,'3時間以上')">3時間以上</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:8px">直近の運動</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button class="precheck-btn" onclick="selectPre('exercise',this,'なし')">なし</button>
+        <button class="precheck-btn" onclick="selectPre('exercise',this,'30分以内')">30分以内</button>
+        <button class="precheck-btn" onclick="selectPre('exercise',this,'1〜2時間')">1〜2時間</button>
+        <button class="precheck-btn" onclick="selectPre('exercise',this,'2時間以上')">2時間以上</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:6px">
+      <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:8px">昨夜の睡眠時間</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button class="precheck-btn" onclick="selectPre('sleep',this,'5時間未満')">5時間未満</button>
+        <button class="precheck-btn" onclick="selectPre('sleep',this,'5〜6時間')">5〜6時間</button>
+        <button class="precheck-btn" onclick="selectPre('sleep',this,'6〜8時間')">6〜8時間</button>
+        <button class="precheck-btn" onclick="selectPre('sleep',this,'8時間以上')">8時間以上</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="goToMenu()">次へ　→</button>
+</div>
+
 <div id="s-breath" class="screen">
   <div class="header-bar">
     <button class="back-btn" onclick="go('menu')">←</button>
@@ -322,6 +377,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
   <div class="modal">
     <h3>新しいクライアント</h3>
     <input type="text" id="new-name" placeholder="氏名を入力" />
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="number" id="new-age" placeholder="年齢" min="10" max="100" style="flex:1;padding:9px 11px;border:1px solid #e8e8e4;border-radius:8px;font-size:14px;background:#f9f9f7;color:#1a1a1a;font-family:inherit" />
+      <select id="new-gender" style="flex:1;padding:9px 11px;border:1px solid #e8e8e4;border-radius:8px;font-size:14px;background:#f9f9f7;color:#1a1a1a;font-family:inherit">
+        <option value="">性別</option>
+        <option value="male">男性</option>
+        <option value="female">女性</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="closeMD()">キャンセル</button>
       <button class="btn btn-primary" onclick="addClient()">追加</button>
@@ -340,7 +404,7 @@ const QS=[
   {text:'体にエネルギーや活力を感じますか？',lo:'疲れている',hi:'活力ある'},
 ];
 
-let D={clients:[],cid:null,qa:[],hrR:null,skipHR:false,pendSess:null,gp8On:false};
+let D={clients:[],cid:null,qa:[],hrR:null,skipHR:false,pendSess:null,gp8On:false,precheck:{}};
 let curQ=0,tInt=null,tChart=null;
 
 // ローカルストレージからクライアント読み込み
@@ -367,6 +431,7 @@ function go(sc){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+sc).classList.add('active');
   if(sc==='home')renderHome();
+  if(sc==='precheck'){document.getElementById('precheck-name').textContent=gc()?.name||'';}
   if(sc==='menu'){document.getElementById('menu-name').textContent=gc()?.name||'';menuTab('new')}
   if(sc==='measure'){document.getElementById('meas-pre').style.display='block';document.getElementById('meas-run').style.display='none'}
 }
@@ -379,8 +444,8 @@ function renderHome(){
     const d=document.createElement('div');d.className='client-item';
     d.innerHTML=`<div class="avatar" style="background:${BGS[c.col%BGS.length]};color:${COLS[c.col%COLS.length]}">${init}</div>
     <div><div class="client-name">${c.name}</div>
-    <div class="client-last">${last?'最終: '+last.date+' ／ スコア '+last.score:'記録なし'}</div></div>`;
-    d.onclick=()=>{D.cid=c.id;go('menu')};el.appendChild(d);
+    <div class="client-last">${c.age?c.age+'歳':''}${c.age&&c.gender?' ・ ':''}${c.gender?{male:'男性',female:'女性',other:'その他'}[c.gender]:''}${(c.age||c.gender)?' ／ ':''}${last?'最終: '+last.date+' ／ スコア '+last.score:'記録なし'}</div></div>`;
+    d.onclick=()=>{D.cid=c.id;D.precheck={};go('precheck');};el.appendChild(d);
   });
 }
 
@@ -511,7 +576,7 @@ function computeAndShow(){
     date:new Date().toLocaleDateString('ja-JP',{month:'2-digit',day:'2-digit'}).replace(/\//g,'/'),
     score,level,hr:hr||'--',hrv:hrv||'--',scl,valence:val,smoothness:smo,arousal:aro,
     lf_hf,color,summary,bullets,staffInterp,
-    clientName:gc()?.name||'',
+    clientName:gc()?.name||'',precheck:Object.assign({},D.precheck),
     gp8:{
       on:D.gp8On,
       timing:document.getElementById('gp8-timing').value,
@@ -591,6 +656,8 @@ async function saveAndSend(){
     gp8Timing:p.gp8&&p.gp8.timing?p.gp8.timing:'',
     gp8Fb:p.gp8&&p.gp8.fb?p.gp8.fb:'',
     gp8Note:p.gp8&&p.gp8.note?p.gp8.note:'',
+    meal:p.precheck?.meal||'',caffeine:p.precheck?.caffeine||'',
+    exercise:p.precheck?.exercise||'',sleep:p.precheck?.sleep||'',
   };
   try{
     await fetch(WEBHOOK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -614,15 +681,29 @@ function openModal(){
   setTimeout(()=>document.getElementById('new-name').focus(),100);
 }
 function closeME(e){if(e.target===document.getElementById('modal'))closeMD()}
-function closeMD(){document.getElementById('modal').classList.remove('open');document.getElementById('new-name').value=''}
+function closeMD(){document.getElementById('modal').classList.remove('open');document.getElementById('new-name').value='';document.getElementById('new-age').value='';document.getElementById('new-gender').value='';}
 function addClient(){
   const n=document.getElementById('new-name').value.trim();if(!n)return;
-  D.clients.push({id:Date.now(),name:n,col:D.clients.length%COLS.length,sessions:[]});
+  const age=parseInt(document.getElementById('new-age').value)||null;
+  const gender=document.getElementById('new-gender').value||null;
+  D.clients.push({id:Date.now(),name:n,age:age,gender:gender,col:D.clients.length%COLS.length,sessions:[]});
   saveClients();closeMD();renderHome();
 }
 
 loadClients();
 renderHome();
+
+
+function selectPre(key,btn,val){
+  var parent=btn.parentElement;
+  parent.querySelectorAll('.precheck-btn').forEach(function(b){b.classList.remove('sel')});
+  btn.classList.add('sel');
+  D.precheck[key]=val;
+}
+function goToMenu(){
+  go('menu');
+  menuTab('new');
+}
 
 var BM=0,bRunning=false,bStartT=0,bTid=null,bRafID=null,bEl=0,bPh='in',bAC=null;
 var BCFG=[{dur:30,guide:false,col:'#378ADD',bbg:'#E6F1FB',btc:'#0C447C',btext:'通常呼吸・安静'},{dur:60,guide:true,col:'#1D9E75',bbg:'#E1F5EE',btc:'#085041',btext:'コヒーレント呼吸'}];
