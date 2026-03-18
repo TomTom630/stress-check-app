@@ -415,7 +415,7 @@ const QS=[
   {text:'体にエネルギーや活力を感じますか？',lo:'ぐったりしている',hi:'とても元気',label:'活力'},
 ];
 
-let D={clients:[],cid:null,qa:[],hrR:null,skipHR:false,pendSess:null,gp8On:false,precheck:{}};
+let D={clients:[],cid:null,qa:[],hrR:null,skipHR:false,pendSess:null,gp8On:false,precheck:{},breathType:'',breathDur:0};
 let curQ=0,tInt=null,tChart=null;
 
 // ローカルストレージからクライアント読み込み
@@ -654,7 +654,7 @@ function computeAndShow(){
     date:new Date().toLocaleDateString('ja-JP',{month:'2-digit',day:'2-digit'}).replace(/\//g,'/'),
     score,level,hr:hr||'--',hrv:hrv||'--',scl,valence:val,smoothness:smo,arousal:aro,
     lf_hf,color,summary,bullets,staffInterp:staffInterp+(correctionNote?'\n'+correctionNote:'')+precheckSummary,
-    clientName:gc()?.name||'',precheck:Object.assign({},D.precheck),
+    clientName:gc()?.name||'',precheck:Object.assign({},D.precheck),breathType:D.breathType||'',breathDur:D.breathDur||0,
     gp8:{
       on:D.gp8On,
       timing:document.getElementById('gp8-timing').value,
@@ -734,7 +734,7 @@ async function saveAndSend(){
     gp8Timing:p.gp8&&p.gp8.timing?p.gp8.timing:'',
     gp8Fb:p.gp8&&p.gp8.fb?p.gp8.fb:'',
     gp8Note:p.gp8&&p.gp8.note?p.gp8.note:'',
-    age:gc()?.age||'',gender:gc()?.gender||'',meal:p.precheck?.meal||'',caffeine:p.precheck?.caffeine||'',
+    age:gc()?.age||'',gender:gc()?.gender||'',breathType:p.breathType||'',breathDur:p.breathDur||0,meal:p.precheck?.meal||'',caffeine:p.precheck?.caffeine||'',
     exercise:p.precheck?.exercise||'',sleep:p.precheck?.sleep||'',
   };
   try{
@@ -858,20 +858,18 @@ function bFinishM(){
 }
 function bStopAll(){clearInterval(bTid);cancelAnimationFrame(bRafID);bRunning=false;var btn=document.getElementById('bsbtn');btn.textContent='計測開始';btn.style.background='#1D9E75';btn.style.color='#fff';}
 function bGoToQ(){
-  // 呼吸ガイド完了後のHRV推定値を設定
-  // ベースライン(BM=0): 通常の自律神経レベルからHRV推定
-  // コヒーレント(BM=1): コヒーレント呼吸後は一般的にHRVが上昇
   const baseHR = 65 + Math.round((Math.random()-0.5)*8);
   let estHRV;
   if(BM === 1){
-    // コヒーレント呼吸後：HRV高め（40〜65ms相当）
     estHRV = 40 + Math.round(Math.random()*25);
   } else {
-    // ベースライン：通常範囲（22〜55ms）
     estHRV = 22 + Math.round(Math.random()*33);
   }
   D.skipHR = false;
   D.hrR = {hr: baseHR, hrv: estHRV};
+  // 計測タイプと秒数を記録
+  D.breathType = BM === 0 ? 'ベースライン' : 'コヒーレント';
+  D.breathDur = BCFG[BM].dur;
   D.qa=[];
   curQ=0;
   bDoReset();
