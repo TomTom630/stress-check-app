@@ -849,8 +849,9 @@ function bDraw(r,active,label,color){
   if(label&&active){ctx.fillStyle=col;ctx.globalAlpha=0.9;ctx.font='500 26px -apple-system,BlinkMacSystemFont,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,cx,cy);ctx.globalAlpha=1;}
 }
 function bFinishM(){
+  var _bm=BM; // BM値を確実にキャプチャ
   bStopAll();
-  if(BM===0){ bTone(440,0.2,0.3); setTimeout(function(){bTone(523,0.25,0.3)},250); }
+  if(_bm===0){ bTone(440,0.2,0.3); setTimeout(function(){bTone(523,0.25,0.3)},250); }
   else { bDoneSound(); }bDoneSound();document.getElementById('btnum').textContent='0';document.getElementById('bfill').style.width='100%';
   bSetPh('完了','#888','');document.getElementById('btsub').textContent='';
   document.getElementById('bdonemsg').textContent=BM===0?'ベースライン計測が完了しました。\n続けてコヒーレント呼吸、または質問票へ進んでください。':'コヒーレント呼吸が完了しました。\n自律神経が整った状態で質問票へ進みましょう。';
