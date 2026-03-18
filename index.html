@@ -155,7 +155,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
     <div style="background:linear-gradient(135deg,#0F6E56,#1D9E75);border-radius:12px;padding:1.25rem;margin-bottom:12px;color:#fff">
       <div style="font-size:11px;font-weight:600;letter-spacing:.8px;opacity:.8;margin-bottom:8px">自律神経チェック</div>
       <div style="font-size:15px;font-weight:500;margin-bottom:14px;line-height:1.5">ベースライン計測 → コヒーレント呼吸で<br>自律神経の状態を確認します</div>
-      <button onclick="go('breath');bSwitchMode(0);bDraw(22,false,'')" style="width:100%;padding:12px;border:none;border-radius:10px;background:#fff;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">計測を開始する →</button>
+      <button onclick="go('measure')"  style="width:100%;padding:12px;border:none;border-radius:10px;background:#fff;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">計測を開始する →</button>
     </div>
     <button class="btn btn-secondary" onclick="skipToQ()">質問票のみで実施</button>
   </div>
@@ -376,6 +376,50 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
   <button class="btn btn-primary" onclick="goToMenu()">次へ　→</button>
 </div>
 
+
+<div id="s-measure" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="stopCamera();go('menu')">←</button>
+    <div class="screen-title">心拍計測</div>
+  </div>
+  <div class="card" style="text-align:center;padding:20px 16px">
+    <div id="measure-guide" style="font-size:14px;color:#555;line-height:1.7;margin-bottom:14px">
+      📱 カメラに指先をそっと当ててください<br>
+      <span style="font-size:12px;color:#aaa">フラッシュが使える場合はONにすると精度が上がります</span>
+    </div>
+    <div style="position:relative;width:200px;height:200px;margin:0 auto 14px">
+      <video id="rppg-video" autoplay playsinline muted style="width:200px;height:200px;border-radius:50%;object-fit:cover;background:#000;transform:scaleX(-1)"></video>
+      <canvas id="rppg-canvas" width="200" height="200" style="display:none"></canvas>
+      <div id="rppg-overlay" style="position:absolute;inset:0;border-radius:50%;border:3px solid #e8e8e4;pointer-events:none"></div>
+      <svg id="rppg-progress" style="position:absolute;inset:0;transform:rotate(-90deg)" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="97" fill="none" stroke="#1D9E75" stroke-width="3" stroke-dasharray="609" stroke-dashoffset="609" id="rppg-arc" style="transition:stroke-dashoffset .5s linear"/>
+      </svg>
+    </div>
+    <div id="rppg-status" style="font-size:28px;font-weight:700;color:#1a1a1a;margin-bottom:4px">--</div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:14px">bpm（リアルタイム）</div>
+    <div style="display:flex;gap:16px;justify-content:center;margin-bottom:16px">
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:600;color:#378ADD" id="rppg-hrv">--</div>
+        <div style="font-size:11px;color:#aaa">HRV (ms)</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:600;color:#BA7517" id="rppg-quality">--</div>
+        <div style="font-size:11px;color:#aaa">信号品質</div>
+      </div>
+    </div>
+    <canvas id="rppg-waveform" width="320" height="60" style="width:100%;border-radius:8px;background:#f9f9f7;margin-bottom:14px"></canvas>
+    <div id="rppg-timer" style="font-size:13px;color:#888;margin-bottom:14px">計測準備中...</div>
+    <button id="rppg-start-btn" onclick="startRppg()" class="btn btn-primary">計測開始</button>
+    <div id="rppg-result-area" style="display:none;margin-top:14px;padding:14px;background:#f0faf5;border-radius:10px">
+      <div style="font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:8px">✅ 計測完了</div>
+      <div style="display:flex;justify-content:space-around">
+        <div style="text-align:center"><div id="res-hr" style="font-size:22px;font-weight:700;color:#1a1a1a">--</div><div style="font-size:11px;color:#aaa">HR (bpm)</div></div>
+        <div style="text-align:center"><div id="res-hrv" style="font-size:22px;font-weight:700;color:#378ADD">--</div><div style="font-size:11px;color:#aaa">HRV (ms)</div></div>
+      </div>
+      <button onclick="useRppgResult()" class="btn btn-primary" style="margin-top:12px;width:100%">この結果を使う →</button>
+    </div>
+  </div>
+</div>
 <div id="s-breath" class="screen">
   <div class="header-bar">
     <button class="back-btn" onclick="go('menu')">←</button>
@@ -475,6 +519,15 @@ function go(sc){
   document.getElementById('s-'+sc).classList.add('active');
   if(sc==='home')renderHome();
   if(sc==='admin'){renderAdmin();}
+  if(sc==='measure'){
+    document.getElementById('rppg-start-btn').style.display='block';
+    document.getElementById('rppg-start-btn').textContent='計測開始';
+    document.getElementById('rppg-result-area').style.display='none';
+    document.getElementById('rppg-status').textContent='--';
+    document.getElementById('rppg-hrv').textContent='--';
+    document.getElementById('rppg-timer').textContent='計測準備中...';
+    document.getElementById('rppg-arc').setAttribute('stroke-dashoffset','609');
+  }
   if(sc==='precheck'){document.getElementById('precheck-name').textContent=gc()?.name||'';}
   if(sc==='menu'){document.getElementById('menu-name').textContent=gc()?.name||'';menuTab('new')}
   if(sc==='measure'){document.getElementById('meas-pre').style.display='block';document.getElementById('meas-run').style.display='none'}
@@ -958,6 +1011,227 @@ function deleteClient(id){
   saveD();
   renderAdmin();
   renderHome();
+}
+
+
+// ===== rPPG計測エンジン =====
+var rppgStream = null, rppgTimer = null, rppgAnimFrame = null;
+var rppgSamples = [], rppgRR = [], rppgRunning = false;
+var rppgDuration = 120, rppgElapsed = 0, rppgFPS = 30;
+var rppgResultHR = null, rppgResultHRV = null;
+
+function stopCamera(){
+  rppgRunning = false;
+  if(rppgTimer){ clearInterval(rppgTimer); rppgTimer=null; }
+  if(rppgAnimFrame){ cancelAnimationFrame(rppgAnimFrame); rppgAnimFrame=null; }
+  if(rppgStream){ rppgStream.getTracks().forEach(function(t){t.stop();}); rppgStream=null; }
+}
+
+function startRppg(){
+  document.getElementById('rppg-start-btn').style.display='none';
+  document.getElementById('rppg-result-area').style.display='none';
+  document.getElementById('rppg-timer').textContent='カメラを起動中...';
+  rppgSamples=[]; rppgRR=[]; rppgElapsed=0; rppgRunning=true;
+  rppgResultHR=null; rppgResultHRV=null;
+  document.getElementById('rppg-arc').setAttribute('stroke-dashoffset','609');
+
+  var constraints = {
+    video:{
+      facingMode:'environment',
+      width:{ideal:320}, height:{ideal:240},
+      frameRate:{ideal:30}
+    }
+  };
+  navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
+    rppgStream = stream;
+    var v = document.getElementById('rppg-video');
+    v.srcObject = stream;
+    v.play();
+    // トーチ（フラッシュ）を試みる
+    var track = stream.getVideoTracks()[0];
+    if(track && track.getCapabilities && track.getCapabilities().torch){
+      track.applyConstraints({advanced:[{torch:true}]}).catch(function(){});
+    }
+    setTimeout(function(){ rppgProcessLoop(); }, 1000);
+  }).catch(function(err){
+    document.getElementById('rppg-timer').textContent='カメラエラー: ' + err.message;
+    document.getElementById('rppg-start-btn').style.display='block';
+  });
+}
+
+function rppgProcessLoop(){
+  var v = document.getElementById('rppg-video');
+  var canvas = document.getElementById('rppg-canvas');
+  var ctx = canvas.getContext('2d');
+  var wctx = document.getElementById('rppg-waveform').getContext('2d');
+  var ww = document.getElementById('rppg-waveform').width;
+  var wh = document.getElementById('rppg-waveform').height;
+  rppgDuration = BCFG[BM].dur;
+  document.getElementById('rppg-timer').textContent = '計測中... 0/' + rppgDuration + '秒';
+
+  var lastTime = performance.now();
+  var frameCount = 0;
+  var redBuf = [];
+  var lastPeaks = [];
+  var smoothed = [];
+
+  function frame(now){
+    if(!rppgRunning) return;
+    rppgAnimFrame = requestAnimationFrame(frame);
+    var dt = now - lastTime;
+    if(dt < 1000/rppgFPS) return;
+    lastTime = now;
+    frameCount++;
+
+    // キャンバスに描画してピクセル取得
+    ctx.drawImage(v, 0, 0, 200, 200);
+    var px = ctx.getImageData(80, 80, 40, 40).data; // 中央40x40
+    var r=0, g=0, b=0, n=px.length/4;
+    for(var i=0;i<px.length;i+=4){ r+=px[i]; g+=px[i+1]; b+=px[i+2]; }
+    r/=n; g/=n; b/=n;
+
+    // 信号品質チェック（赤成分が十分か）
+    var quality = r > 50 ? (r > 150 ? '良好' : '普通') : '低い';
+    document.getElementById('rppg-quality').textContent = quality;
+
+    // 赤成分を記録（バンドパス用）
+    redBuf.push(r);
+    if(redBuf.length > rppgFPS * 10) redBuf.shift(); // 最大10秒分
+
+    // 移動平均（スムージング）
+    var win = Math.min(rppgFPS, redBuf.length);
+    var avg = redBuf.slice(-win).reduce(function(a,b){return a+b;},0)/win;
+    smoothed.push(r - avg); // DCオフセット除去
+    if(smoothed.length > ww) smoothed.shift();
+
+    rppgSamples.push({t:now, r:r, g:g, b:b, s:r-avg});
+
+    // 波形描画
+    wctx.fillStyle='#f9f9f7';
+    wctx.fillRect(0,0,ww,wh);
+    wctx.strokeStyle='#1D9E75';
+    wctx.lineWidth=2;
+    wctx.beginPath();
+    var disp = smoothed.slice(-ww);
+    var mn=Math.min.apply(null,disp), mx=Math.max.apply(null,disp);
+    var rng = mx-mn || 1;
+    for(var j=0;j<disp.length;j++){
+      var y = wh/2 - ((disp[j]-mn)/rng - 0.5)*wh*0.8;
+      j===0 ? wctx.moveTo(j,y) : wctx.lineTo(j,y);
+    }
+    wctx.stroke();
+
+    // HRリアルタイム推定（最後3秒のピーク）
+    if(smoothed.length >= rppgFPS * 3){
+      var seg = smoothed.slice(-rppgFPS*3);
+      var mean3 = seg.reduce(function(a,b){return a+b;},0)/seg.length;
+      var std3 = Math.sqrt(seg.reduce(function(a,v){return a+(v-mean3)*(v-mean3);},0)/seg.length);
+      var threshold = mean3 + std3 * 0.6;
+      var peaks3 = [];
+      for(var k=2;k<seg.length-2;k++){
+        if(seg[k]>threshold && seg[k]>=seg[k-1] && seg[k]>=seg[k+1] && seg[k]>=seg[k-2] && seg[k]>=seg[k+2]){
+          if(peaks3.length===0 || k-peaks3[peaks3.length-1] > rppgFPS*0.4){
+            peaks3.push(k);
+          }
+        }
+      }
+      if(peaks3.length >= 2){
+        var avgRR3 = (peaks3[peaks3.length-1]-peaks3[0])/(peaks3.length-1)/(rppgFPS/1000);
+        var hr = Math.round(60000/avgRR3);
+        if(hr > 40 && hr < 200){
+          document.getElementById('rppg-status').textContent = hr;
+        }
+      }
+    }
+
+    // 経過時間更新
+    rppgElapsed = frameCount / rppgFPS;
+    var pct = Math.min(rppgElapsed / rppgDuration, 1);
+    document.getElementById('rppg-arc').setAttribute('stroke-dashoffset', 609*(1-pct));
+    document.getElementById('rppg-timer').textContent = '計測中... ' + Math.floor(rppgElapsed) + '/' + rppgDuration + '秒';
+
+    // 完了チェック
+    if(rppgElapsed >= rppgDuration){
+      rppgRunning = false;
+      cancelAnimationFrame(rppgAnimFrame);
+      rppgFinish();
+    }
+  }
+  rppgAnimFrame = requestAnimationFrame(frame);
+}
+
+function rppgFinish(){
+  stopCamera();
+  // 全サンプルからHR・HRV算出
+  var sig = rppgSamples.map(function(s){return s.s;});
+  var times = rppgSamples.map(function(s){return s.t;});
+  var n = sig.length;
+  if(n < 30){ showRppgError('サンプル不足'); return; }
+
+  var mean = sig.reduce(function(a,b){return a+b;},0)/n;
+  var std = Math.sqrt(sig.reduce(function(a,v){return a+(v-mean)*(v-mean);},0)/n);
+  var thresh = mean + std * 0.5;
+
+  // ピーク検出
+  var minDist = Math.round((rppgSamples.length / rppgDuration) * 0.4);
+  var peaks = [];
+  for(var i=2;i<n-2;i++){
+    if(sig[i]>thresh && sig[i]>=sig[i-1] && sig[i]>=sig[i+1] && sig[i]>=sig[i-2] && sig[i]>=sig[i+2]){
+      if(peaks.length===0 || i-peaks[peaks.length-1]>minDist){
+        peaks.push(i);
+      }
+    }
+  }
+
+  if(peaks.length < 5){ showRppgError('心拍検出できませんでした\n指をしっかりカメラに当ててください'); return; }
+
+  // RR間隔（ms）
+  var rr = [];
+  for(var j=1;j<peaks.length;j++){
+    var dt = times[peaks[j]] - times[peaks[j-1]];
+    if(dt > 300 && dt < 2000) rr.push(dt); // 30〜200bpmの範囲
+  }
+  if(rr.length < 4){ showRppgError('RR間隔の取得に失敗しました'); return; }
+
+  // HR計算
+  var meanRR = rr.reduce(function(a,b){return a+b;},0)/rr.length;
+  var hr = Math.round(60000/meanRR);
+
+  // RMSSD (HRV)
+  var ssq = 0;
+  for(var k=1;k<rr.length;k++) ssq += Math.pow(rr[k]-rr[k-1],2);
+  var rmssd = Math.round(Math.sqrt(ssq/(rr.length-1)));
+
+  rppgResultHR = hr;
+  rppgResultHRV = rmssd;
+
+  document.getElementById('rppg-timer').textContent = '計測完了！';
+  document.getElementById('rppg-status').textContent = hr;
+  document.getElementById('rppg-hrv').textContent = rmssd;
+  document.getElementById('res-hr').textContent = hr;
+  document.getElementById('res-hrv').textContent = rmssd;
+  document.getElementById('rppg-result-area').style.display='block';
+
+  // 完了音
+  bTone(523,0.3,0.3);
+  setTimeout(function(){bTone(659,0.3,0.3);},250);
+  setTimeout(function(){bTone(784,0.4,0.4);},500);
+}
+
+function showRppgError(msg){
+  document.getElementById('rppg-timer').textContent = '⚠️ ' + msg;
+  document.getElementById('rppg-start-btn').style.display='block';
+  document.getElementById('rppg-start-btn').textContent = 'もう一度計測';
+}
+
+function useRppgResult(){
+  if(!rppgResultHR) return;
+  D.hrR = {hr: rppgResultHR, hrv: rppgResultHRV};
+  D.skipHR = false;
+  D.breathType = BM===0 ? 'ベースライン(rPPG)' : 'コヒーレント(rPPG)';
+  D.breathDur = BCFG[BM].dur;
+  D.qa=[]; curQ=0;
+  go('q'); renderQ();
 }
 
 function bGoToQ(){
