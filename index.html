@@ -122,7 +122,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
 
 <div id="s-home" class="screen active">
   <div class="logo">
-    <div class="logo-text">ストレスチェック</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;position:relative">
+      <div class="logo-text">ストレスチェック</div>
+      <button onclick="go('admin')" style="position:absolute;right:-16px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;color:#888;padding:4px" title="管理">⚙️</button>
+    </div>
     <div class="logo-sub">Alive Biofeedback 簡易版</div>
     <div style="display:flex;justify-content:center;margin-top:8px">
       <div class="connected-badge"><div class="dot-green"></div>スプレッドシート接続済み</div>
@@ -292,6 +295,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
 
 
 
+
+<div id="s-admin" class="screen">
+  <div class="header-bar">
+    <button class="back-btn" onclick="go('home')">←</button>
+    <div class="screen-title">クライアント管理</div>
+  </div>
+  <div id="admin-list" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center">
+  <div class="modal" style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:400px">
+    <div style="font-size:16px;font-weight:600;margin-bottom:16px">クライアント情報を編集</div>
+    <input type="text" id="edit-name" placeholder="氏名" style="width:100%;padding:10px 12px;border:1px solid #e8e8e4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;font-family:inherit" />
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="number" id="edit-age" placeholder="年齢" min="10" max="100" style="flex:1;padding:9px 11px;border:1px solid #e8e8e4;border-radius:8px;font-size:14px;font-family:inherit" />
+      <select id="edit-gender" style="flex:1;padding:9px 11px;border:1px solid #e8e8e4;border-radius:8px;font-size:14px;font-family:inherit">
+        <option value="">性別</option>
+        <option value="male">男性</option>
+        <option value="female">女性</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeEditModal()" style="flex:1;padding:11px;border:.5px solid #e8e8e4;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;font-family:inherit">キャンセル</button>
+      <button onclick="saveEdit()" style="flex:1;padding:11px;border:none;border-radius:10px;background:#1D9E75;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">保存</button>
+    </div>
+  </div>
+</div>
 <div id="s-precheck" class="screen">
   <div class="header-bar">
     <button class="back-btn" onclick="go('home')">←</button>
@@ -442,6 +474,7 @@ function go(sc){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+sc).classList.add('active');
   if(sc==='home')renderHome();
+  if(sc==='admin'){renderAdmin();}
   if(sc==='precheck'){document.getElementById('precheck-name').textContent=gc()?.name||'';}
   if(sc==='menu'){document.getElementById('menu-name').textContent=gc()?.name||'';menuTab('new')}
   if(sc==='measure'){document.getElementById('meas-pre').style.display='block';document.getElementById('meas-run').style.display='none'}
@@ -453,9 +486,7 @@ function renderHome(){
     const last=c.sessions&&c.sessions[0];
     const init=c.name.split(/[\s　]+/).map(n=>n[0]).join('').slice(0,2);
     const d=document.createElement('div');d.className='client-item';
-    d.innerHTML=`<div class="avatar" style="background:${BGS[c.col%BGS.length]};color:${COLS[c.col%COLS.length]}">${init}</div>
-    <div><div class="client-name">${c.name}</div>
-    <div class="client-last">${c.age?c.age+'歳':''}${c.age&&c.gender?' ・ ':''}${c.gender?{male:'男性',female:'女性',other:'その他'}[c.gender]:''}${(c.age||c.gender)?' ／ ':''}${last?'最終: '+last.date+' ／ スコア '+last.score:'記録なし'}</div></div>`;
+    (function(){var av=document.createElement('div');av.style.cssText='width:40px;height:40px;border-radius:50%;background:'+COLS[cl.col||0]+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:600;flex-shrink:0';av.textContent=(cl.name||'?')[0];var inf2=document.createElement('div');inf2.style.cssText='flex:1;min-width:0';var n2=document.createElement('div');n2.style.cssText='font-size:15px;font-weight:500;color:#1a1a1a';n2.textContent=cl.name;var i2=document.createElement('div');i2.style.cssText='font-size:12px;color:#888;margin-top:2px';i2.textContent=(info||'情報未登録')+' / セッション'+(cl.sessions?cl.sessions.length:0)+'件';inf2.appendChild(n2);inf2.appendChild(i2);var bw=document.createElement('div');bw.style.cssText='display:flex;gap:6px';var eb=document.createElement('button');eb.style.cssText='padding:6px 10px;border:.5px solid #e8e8e4;border-radius:8px;background:#f5f5f0;font-size:12px;cursor:pointer;font-family:inherit';eb.textContent='編集';eb.onclick=function(){openEditModal(cl.id);};var db=document.createElement('button');db.style.cssText='padding:6px 10px;border:.5px solid #fce8e8;border-radius:8px;background:#fff5f5;color:#c0392b;font-size:12px;cursor:pointer;font-family:inherit';db.textContent='削除';db.onclick=function(){deleteClient(cl.id);};bw.appendChild(eb);bw.appendChild(db);d.appendChild(av);d.appendChild(inf2);d.appendChild(bw);})();
     d.onclick=()=>{D.cid=c.id;D.precheck={};go('precheck');};el.appendChild(d);
   });
 }
@@ -474,15 +505,7 @@ function renderHist(){
   if(!c||!c.sessions||!c.sessions.length){el.innerHTML='<div class="empty">記録がありません</div>';return}
   const sc=s=>s>=75?'#1D9E75':s>=50?'#BA7517':'#D85A30';
   const sb=s=>s>=75?'#E1F5EE':s>=50?'#FAEEDA':'#FAECE7';
-  el.innerHTML='<div class="card"><div>'+c.sessions.map(s=>`
-    <div class="history-item">
-      <div class="history-date">${s.date}</div>
-      <div class="history-badge" style="background:${sb(s.score)};color:${sc(s.score)}">${s.score}</div>
-      <div class="history-info">
-        <div class="history-level">${s.level}${s.gp8&&s.gp8.on?'<span class="gp8-badge">GP8連携</span>':''}</div>
-        <div class="history-sub">HR: ${s.hr||'--'} bpm ／ HRV: ${s.hrv||'--'} ms</div>
-      </div>
-    </div>`).join('')+'</div></div>';
+  el.innerHTML='<div class="card"><div>'+c.sessions.map(s=>'\n    <div class="history-item">\n      <div class="history-date">'+(s.date)+'</div>\n      <div class="history-badge" style="background:'+(sb(s.score))+';color:'+(sc(s.score))+'">'+(s.score)+'</div>\n      <div class="history-info">\n        <div class="history-level">'+(s.level)+''+(s.gp8&&s.gp8.on?'<span class="gp8-badge">GP8連携</span>':'')+'</div>\n        <div class="history-sub">HR: '+(s.hr||'--')+' bpm ／ HRV: '+(s.hrv||'--')+' ms</div>\n      </div>\n    </div>').join('')+'</div></div>';
 }
 
 function renderTrend(){
@@ -527,11 +550,11 @@ function startTimer(){
 
 function renderQ(){
   const q=QS[curQ];
-  document.getElementById('qdots').innerHTML=QS.map((_,i)=>`<div class="q-dot ${i<curQ?'done':i===curQ?'cur':''}"></div>`).join('');
+  document.getElementById('qdots').innerHTML=QS.map((_,i)=>'<div class="q-dot '+(i<curQ?'done':i===curQ?'cur':'')+'"></div>').join('');
   document.getElementById('qtext').textContent=q.text;
   document.getElementById('qlo').textContent=q.lo;
   document.getElementById('qhi').textContent=q.hi;
-  document.getElementById('qbtns').innerHTML=[1,2,3,4,5].map(v=>`<button class="scale-btn" onclick="ansQ(${v})">${v}</button>`).join('');
+  document.getElementById('qbtns').innerHTML=[1,2,3,4,5].map(v=>'<button class="scale-btn" onclick="ansQ('+(v)+')">'+(v)+'</button>').join('');
 }
 
 function ansQ(v){
@@ -673,7 +696,7 @@ function renderResult(sess){
   document.getElementById('r-score').textContent=sess.score;
   document.getElementById('r-level').textContent=sess.level;
   document.getElementById('ex-summary').textContent=sess.summary;
-  document.getElementById('ex-list').innerHTML=sess.bullets.map(b=>`<li>${b}</li>`).join('');
+  document.getElementById('ex-list').innerHTML=sess.bullets.map(b=>'<li>'+(b)+'</li>').join('');
 
   const metrics=[
     {name:'心拍数',val:sess.hr,unit:'bpm',fill:'#378ADD',bar:typeof sess.hr==='number'?Math.round((1-Math.max(0,(sess.hr-55)/50))*100):0},
@@ -681,12 +704,7 @@ function renderResult(sess){
     {name:'落ち着き',val:sess.scl+'/5',unit:'',fill:'#BA7517',bar:sess.scl*20},
     {name:'活力',val:sess.smoothness+'/5',unit:'',fill:'#534AB7',bar:sess.smoothness*20},
   ];
-  document.getElementById('metrics-grid').innerHTML=metrics.map(m=>`
-    <div class="metric-card">
-      <div class="metric-name">${m.name}</div>
-      <div><span class="metric-val">${m.val}</span><span class="metric-unit"> ${m.unit}</span></div>
-      <div class="metric-bar"><div class="metric-bar-fill" style="width:${m.bar}%;background:${m.fill}"></div></div>
-    </div>`).join('');
+  document.getElementById('metrics-grid').innerHTML=metrics.map(m=>'\n    <div class="metric-card">\n      <div class="metric-name">'+(m.name)+'</div>\n      <div><span class="metric-val">'+(m.val)+'</span><span class="metric-unit"> '+(m.unit)+'</span></div>\n      <div class="metric-bar"><div class="metric-bar-fill" style="width:'+(m.bar)+'%;background:'+(m.fill)+'"></div></div>\n    </div>').join('');
 
   const rows=[
     ['LF/HF 推定',sess.lf_hf||'--','LF/HF 1〜2が理想。高いほど交感神経優位'],
@@ -695,16 +713,11 @@ function renderResult(sess){
     ['活力（自己評価）',sess.smoothness+'/5','1〜2はエネルギー枯渇の可能性'],
     ['リラックス度（自己評価）',sess.scl+'/5','1〜2は高緊張状態。SCLと合わせて確認'],
   ];
-  let html=`<div class="staff-summary">${sess.staffInterp}</div>`;
-  html+=rows.map(r=>`<div class="staff-row"><div><div class="staff-key">${r[0]}</div><div class="staff-interpret">${r[2]}</div></div><div class="staff-val">${r[1]}</div></div>`).join('');
+  let html='<div class="staff-summary">'+(sess.staffInterp)+'</div>';
+  html+=rows.map(r=>'<div class="staff-row"><div><div class="staff-key">'+(r[0])+'</div><div class="staff-interpret">'+(r[2])+'</div></div><div class="staff-val">'+(r[1])+'</div></div>').join('');
   if(sess.gp8&&sess.gp8.on){
     const timingLabel={before:'セッション前',after:'セッション後',standalone:'単独'}[sess.gp8.timing]||'--';
-    html+=`<div style="margin-top:12px;padding:10px;background:#f5f5f0;border-radius:8px">
-      <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:8px">GP8 セッション情報</div>
-      <div class="staff-row"><span class="staff-key">タイミング</span><span class="staff-val">${timingLabel}</span></div>
-      <div class="staff-row"><span class="staff-key">フィードバック種別</span><span class="staff-val">${sess.gp8.fb||'--'}</span></div>
-      ${sess.gp8.note?`<div style="font-size:12px;color:#666;margin-top:8px;line-height:1.6">${sess.gp8.note}</div>`:''}
-    </div>`;
+    html+='<div style="margin-top:12px;padding:10px;background:#f5f5f0;border-radius:8px">\n      <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:8px">GP8 セッション情報</div>\n      <div class="staff-row"><span class="staff-key">タイミング</span><span class="staff-val">'+(timingLabel)+'</span></div>\n      <div class="staff-row"><span class="staff-key">フィードバック種別</span><span class="staff-val">'+(sess.gp8.fb||'--')+'</span></div>\n      '+(sess.gp8.note?)+''<div style="font-size:12px;color:#666;margin-top:8px;line-height:1.6">${sess.gp8.note}</div>':\'\'}\n    </div>';
   }
   document.getElementById('staff-rows').innerHTML=html;
   document.getElementById('save-status').textContent='';
@@ -858,6 +871,75 @@ function bFinishM(){
   document.getElementById('bdonebox').style.display='block';bCurR=BMIN;bDraw(BMIN,false,'');
 }
 function bStopAll(){clearInterval(bTid);cancelAnimationFrame(bRafID);bRunning=false;var btn=document.getElementById('bsbtn');btn.textContent='計測開始';btn.style.background='#1D9E75';btn.style.color='#fff';}
+
+var _editId = null;
+
+function renderAdmin(){
+  var list = document.getElementById('admin-list');
+  if(!list) return;
+  list.innerHTML = '';
+  if(D.clients.length === 0){
+    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;font-size:14px">クライアントがいません</div>';
+    return;
+  }
+  D.clients.forEach(function(cl){
+    var lastSess = cl.sessions && cl.sessions.length > 0 ? cl.sessions[cl.sessions.length-1] : null;
+    var genderLabel = cl.gender ? {male:'男性',female:'女性',other:'その他'}[cl.gender] : '';
+    var info = [cl.age ? cl.age+'歳' : '', genderLabel].filter(Boolean).join(' / ');
+    var d = document.createElement('div');
+    d.style.cssText = 'background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px';
+    d.innerHTML = '<div style="width:40px;height:40px;border-radius:50%;background:'+COLS[cl.col||0]+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:600;flex-shrink:0">'+(cl.name||'?').slice(0,1)+'</div>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:15px;font-weight:500;color:#1a1a1a">'+cl.name+'</div>'
+        +'<div style="font-size:12px;color:#888;margin-top:2px">'+(info||'情報未登録')+' ／ セッション '+(cl.sessions?cl.sessions.length:0)+'件</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px">'
+        +'<button onclick="openEditModal(''+cl.id+'')" style="padding:6px 10px;border:.5px solid #e8e8e4;border-radius:8px;background:#f5f5f0;font-size:12px;cursor:pointer;font-family:inherit">編集</button>'
+        +'<button onclick="deleteClient(''+cl.id+'')" style="padding:6px 10px;border:.5px solid #fce8e8;border-radius:8px;background:#fff5f5;color:#c0392b;font-size:12px;cursor:pointer;font-family:inherit">削除</button>'
+      +'</div>';
+    list.appendChild(d);
+  });
+}
+
+function openEditModal(id){
+  var cl = D.clients.find(function(c){return String(c.id)===String(id);});
+  if(!cl) return;
+  _editId = cl.id;
+  document.getElementById('edit-name').value = cl.name||'';
+  document.getElementById('edit-age').value = cl.age||'';
+  document.getElementById('edit-gender').value = cl.gender||'';
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function closeEditModal(){
+  document.getElementById('edit-modal').style.display = 'none';
+  _editId = null;
+}
+
+function saveEdit(){
+  var cl = D.clients.find(function(c){return String(c.id)===String(_editId);});
+  if(!cl) return;
+  var n = document.getElementById('edit-name').value.trim();
+  if(!n){ alert('氏名を入力してください'); return; }
+  cl.name = n;
+  cl.age = parseInt(document.getElementById('edit-age').value)||null;
+  cl.gender = document.getElementById('edit-gender').value||null;
+  saveD();
+  closeEditModal();
+  renderAdmin();
+  renderHome();
+}
+
+function deleteClient(id){
+  var cl = D.clients.find(function(c){return String(c.id)===String(id);});
+  if(!cl) return;
+  if(!confirm(cl.name+' を削除しますか？\n過去のセッション記録もすべて削除されます。')) return;
+  D.clients = D.clients.filter(function(c){return String(c.id)!==String(id);});
+  saveD();
+  renderAdmin();
+  renderHome();
+}
+
 function bGoToQ(){
   const baseHR = 65 + Math.round((Math.random()-0.5)*8);
   let estHRV;
