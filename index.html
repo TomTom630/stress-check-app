@@ -152,7 +152,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
     <div style="background:linear-gradient(135deg,#0F6E56,#1D9E75);border-radius:12px;padding:1.25rem;margin-bottom:12px;color:#fff">
       <div style="font-size:11px;font-weight:600;letter-spacing:.8px;opacity:.8;margin-bottom:8px">自律神経チェック</div>
       <div style="font-size:15px;font-weight:500;margin-bottom:14px;line-height:1.5">ベースライン計測 → コヒーレント呼吸で<br>自律神経の状態を確認します</div>
-      <button onclick="go('breath');bSwitchMode(0);bDraw(22,false,'')" style="width:100%;padding:12px;border:none;border-radius:10px;background:#fff;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">計測を開始する →</button>
+      <button onclick="go('measure')" style="width:100%;padding:12px;border:none;border-radius:10px;background:#fff;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">計測を開始する →</button>
     </div>
     <button class="btn btn-secondary" onclick="skipToQ()">質問票のみで実施</button>
   </div>
@@ -345,6 +345,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku
 </div>
 
 <div id="s-admin" class="screen"><div class="header-bar"><button class="back-btn" onclick="go('home')">&#8592;</button><div class="screen-title">クライアント管理</div></div><div id="admin-list" style="display:flex;flex-direction:column;gap:8px;padding-bottom:20px"></div></div><div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEditModal()" style="display:none"><div class="modal"><div style="font-size:16px;font-weight:600;margin-bottom:16px">クライアント情報を編集</div><input type="text" id="edit-name" placeholder="氏名" style="width:100%;padding:10px 12px;border:1px solid #e8e8e4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;font-family:inherit"/><div style="display:flex;gap:8px;margin-bottom:16px"><input type="number" id="edit-age" placeholder="年齢" style="flex:1;padding:9px 11px;border:1px solid #e8e8e4;border-radius:8px;font-size:14px;font-family:inherit"/><select id="edit-gender" style="flex:1;padding:9px 11px;border:1px solid #e8e8e4;border-radius:8px;font-size:14px;font-family:inherit"><option value="">性別</option><option value="male">男性</option><option value="female">女性</option><option value="other">その他</option></select></div><div style="display:flex;gap:8px"><button onclick="closeEditModal()" style="flex:1;padding:11px;border:.5px solid #e8e8e4;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;font-family:inherit">キャンセル</button><button onclick="saveEdit()" style="flex:1;padding:11px;border:none;border-radius:10px;background:#1D9E75;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">保存</button></div></div></div>
+<div id="s-measure" class="screen">
+<div class="header-bar">
+<button class="back-btn" onclick="stopCamera();go('menu')">&#8592;</button>
+<div class="screen-title">心拍計測</div>
+</div>
+<div class="card" style="text-align:center;padding:20px 16px">
+<div id="measure-guide" style="font-size:14px;color:#555;line-height:1.7;margin-bottom:14px">&#128242; カメラに指先をそっと当ててください<br><span style="font-size:12px;color:#aaa">フラッシュONで精度が上がります</span></div>
+<div style="position:relative;width:200px;height:200px;margin:0 auto 14px">
+<video id="rppg-video" autoplay playsinline muted style="width:200px;height:200px;border-radius:50%;object-fit:cover;background:#000"></video>
+<canvas id="rppg-canvas" width="200" height="200" style="display:none"></canvas>
+<svg id="rppg-progress" style="position:absolute;inset:0;transform:rotate(-90deg)" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="97" fill="none" stroke="#1D9E75" stroke-width="3" stroke-dasharray="609" stroke-dashoffset="609" id="rppg-arc"/>
+</svg>
+</div>
+<div id="rppg-bpm" style="font-size:36px;font-weight:700;color:#1a1a1a;margin-bottom:2px">--</div>
+<div style="font-size:12px;color:#aaa;margin-bottom:8px">bpm</div>
+<div style="display:flex;gap:16px;justify-content:center;margin-bottom:12px">
+<div><div id="rppg-hrv-val" style="font-size:20px;font-weight:600;color:#378ADD">--</div><div style="font-size:11px;color:#aaa">HRV (ms)</div></div>
+<div><div id="rppg-quality" style="font-size:20px;font-weight:600;color:#BA7517">--</div><div style="font-size:11px;color:#aaa">信号品質</div></div>
+</div>
+<canvas id="rppg-wave" width="320" height="60" style="width:100%;border-radius:8px;background:#f9f9f7;margin-bottom:12px"></canvas>
+<div id="rppg-timer" style="font-size:13px;color:#888;margin-bottom:14px">計測準備中...</div>
+<button id="rppg-btn" onclick="startRppg()" class="btn btn-primary">計測開始</button>
+<div id="rppg-result" style="display:none;margin-top:14px;padding:14px;background:#f0faf5;border-radius:10px">
+<div style="font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:8px">&#10003; 計測完了</div>
+<div style="display:flex;justify-content:space-around">
+<div><div id="res-hr" style="font-size:24px;font-weight:700">--</div><div style="font-size:11px;color:#aaa">HR (bpm)</div></div>
+<div><div id="res-hrv" style="font-size:24px;font-weight:700;color:#378ADD">--</div><div style="font-size:11px;color:#aaa">HRV (ms)</div></div>
+</div>
+<button onclick="useRppgResult()" class="btn btn-primary" style="margin-top:12px;width:100%">この結果を使う &#8594;</button>
+</div>
+</div>
+</div>
 <div id="s-breath" class="screen">
   <div class="header-bar">
     <button class="back-btn" onclick="go('menu')">←</button>
@@ -444,6 +477,7 @@ function go(sc){
   document.getElementById('s-'+sc).classList.add('active');
   if(sc==='home')renderHome();
   if(sc==='admin')renderAdmin();
+  if(sc==='measure'){document.getElementById('rppg-btn').style.display='block';document.getElementById('rppg-btn').textContent='計測開始';document.getElementById('rppg-result').style.display='none';document.getElementById('rppg-bpm').textContent='--';document.getElementById('rppg-hrv-val').textContent='--';document.getElementById('rppg-timer').textContent='計測準備中...';document.getElementById('rppg-arc').setAttribute('stroke-dashoffset','609');}
   if(sc==='precheck'){document.getElementById('precheck-name').textContent=gc()?.name||'';}
   if(sc==='menu'){document.getElementById('menu-name').textContent=gc()?.name||'';menuTab('new')}
   if(sc==='measure'){document.getElementById('meas-pre').style.display='block';document.getElementById('meas-run').style.display='none'}
@@ -939,6 +973,128 @@ if(!cl)return;
 if(!confirm(cl.name+" を削除しますか？"))return;
 D.clients=D.clients.filter(function(c){return String(c.id)!==String(id);});
 saveD();renderAdmin();renderHome();
+}
+</script>
+<script>
+var rppgStream=null,rppgFrame=null,rppgRunning=false,rppgSamples=[],rppgHR=null,rppgHRV=null;
+function stopCamera(){
+  rppgRunning=false;
+  if(rppgFrame){cancelAnimationFrame(rppgFrame);rppgFrame=null;}
+  if(rppgStream){rppgStream.getTracks().forEach(function(t){t.stop();});rppgStream=null;}
+}
+function startRppg(){
+  document.getElementById("rppg-btn").style.display="none";
+  document.getElementById("rppg-result").style.display="none";
+  document.getElementById("rppg-timer").textContent="カメラを起動中...";
+  rppgSamples=[];rppgRunning=true;rppgHR=null;rppgHRV=null;
+  document.getElementById("rppg-arc").setAttribute("stroke-dashoffset","609");
+  var dur=BCFG[BM].dur;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:320},height:{ideal:240},frameRate:{ideal:30}}}).then(function(stream){
+    rppgStream=stream;
+    var v=document.getElementById("rppg-video");
+    v.srcObject=stream;v.play();
+    var t=stream.getVideoTracks()[0];
+    if(t&&t.getCapabilities&&t.getCapabilities().torch){t.applyConstraints({advanced:[{torch:true}]}).catch(function(){});}
+    setTimeout(function(){rppgRun(dur);},1000);
+  }).catch(function(err){
+    document.getElementById("rppg-timer").textContent="カメラエラー: "+err.message;
+    document.getElementById("rppg-btn").style.display="block";
+  });
+}
+function rppgRun(dur){
+  var v=document.getElementById("rppg-video");
+  var c=document.getElementById("rppg-canvas").getContext("2d");
+  var wc=document.getElementById("rppg-wave").getContext("2d");
+  var ww=320,wh=60,fps=30,last=performance.now(),buf=[],smooth=[];
+  document.getElementById("rppg-timer").textContent="計測中... 0/"+dur+"秒";
+  function frame(now){
+    if(!rppgRunning)return;
+    rppgFrame=requestAnimationFrame(frame);
+    if(now-last<1000/fps)return;
+    last=now;
+    c.drawImage(v,0,0,200,200);
+    var px=c.getImageData(80,80,40,40).data,r=0,n=px.length/4;
+    for(var i=0;i<px.length;i+=4)r+=px[i];
+    r/=n;
+    buf.push(r);
+    if(buf.length>fps*10)buf.shift();
+    var win=Math.min(fps,buf.length),avg=0;
+    for(var j=0;j<win;j++)avg+=buf[buf.length-win+j];
+    avg/=win;
+    var s=r-avg;
+    smooth.push(s);
+    if(smooth.length>ww)smooth.shift();
+    rppgSamples.push({t:now,r:r,s:s});
+    var q=r>150?"良好":r>50?"普通":"低い";
+    document.getElementById("rppg-quality").textContent=q;
+    wc.fillStyle="#f9f9f7";wc.fillRect(0,0,ww,wh);
+    wc.strokeStyle="#1D9E75";wc.lineWidth=2;wc.beginPath();
+    var d2=smooth.slice(-ww),mn=d2[0],mx=d2[0];
+    for(var k=1;k<d2.length;k++){if(d2[k]<mn)mn=d2[k];if(d2[k]>mx)mx=d2[k];}
+    var rng=mx-mn||1;
+    for(var k=0;k<d2.length;k++){var y=wh/2-((d2[k]-mn)/rng-0.5)*wh*0.8;k===0?wc.moveTo(k,y):wc.lineTo(k,y);}
+    wc.stroke();
+    if(smooth.length>=fps*3){
+      var seg=smooth.slice(-fps*3),m=0;
+      for(var k=0;k<seg.length;k++)m+=seg[k];
+      m/=seg.length;
+      var sd=0;
+      for(var k=0;k<seg.length;k++)sd+=(seg[k]-m)*(seg[k]-m);
+      sd=Math.sqrt(sd/seg.length);
+      var th=m+sd*0.6,pk=[],minD=Math.round(fps*0.4);
+      for(var k=2;k<seg.length-2;k++){if(seg[k]>th&&seg[k]>=seg[k-1]&&seg[k]>=seg[k+1]&&(pk.length===0||k-pk[pk.length-1]>minD))pk.push(k);}
+      if(pk.length>=2){var rr=(pk[pk.length-1]-pk[0])/(pk.length-1)/(fps/1000);var hr=Math.round(60000/rr);if(hr>40&&hr<200)document.getElementById("rppg-bpm").textContent=hr;}
+    }
+    var el=rppgSamples.length/fps,pct=Math.min(el/dur,1);
+    document.getElementById("rppg-arc").setAttribute("stroke-dashoffset",609*(1-pct));
+    document.getElementById("rppg-timer").textContent="計測中... "+Math.floor(el)+"/"+dur+"秒";
+    if(el>=dur){rppgRunning=false;cancelAnimationFrame(rppgFrame);rppgDone();}
+  }
+  rppgFrame=requestAnimationFrame(frame);
+}
+function rppgDone(){
+  stopCamera();
+  var sig=rppgSamples.map(function(x){return x.s;}),times=rppgSamples.map(function(x){return x.t;}),n=sig.length;
+  if(n<30){rppgErr("サンプル不足");return;}
+  var m=0;
+  for(var i=0;i<n;i++)m+=sig[i];
+  m/=n;
+  var sd=0;
+  for(var i=0;i<n;i++)sd+=(sig[i]-m)*(sig[i]-m);
+  sd=Math.sqrt(sd/n);
+  var th=m+sd*0.5,peaks=[],fps2=Math.round(n/(rppgSamples[n-1].t-rppgSamples[0].t)*1000),minD=Math.round(fps2*0.4);
+  for(var i=2;i<n-2;i++){if(sig[i]>th&&sig[i]>=sig[i-1]&&sig[i]>=sig[i+1]&&(peaks.length===0||i-peaks[peaks.length-1]>minD))peaks.push(i);}
+  if(peaks.length<5){rppgErr("心拍検出失敗");return;}
+  var rr=[];
+  for(var i=1;i<peaks.length;i++){var dt=times[peaks[i]]-times[peaks[i-1]];if(dt>300&&dt<2000)rr.push(dt);}
+  if(rr.length<4){rppgErr("RR間隔取得失敗");return;}
+  var mRR=0;
+  for(var i=0;i<rr.length;i++)mRR+=rr[i];
+  mRR/=rr.length;
+  var hr=Math.round(60000/mRR),ssq=0;
+  for(var i=1;i<rr.length;i++)ssq+=(rr[i]-rr[i-1])*(rr[i]-rr[i-1]);
+  var rmssd=Math.round(Math.sqrt(ssq/(rr.length-1)));
+  rppgHR=hr;rppgHRV=rmssd;
+  document.getElementById("rppg-timer").textContent="計測完了！";
+  document.getElementById("rppg-bpm").textContent=hr;
+  document.getElementById("rppg-hrv-val").textContent=rmssd;
+  document.getElementById("res-hr").textContent=hr;
+  document.getElementById("res-hrv").textContent=rmssd;
+  document.getElementById("rppg-result").style.display="block";
+  bTone(523,0.3,0.3);setTimeout(function(){bTone(659,0.3,0.3);},250);setTimeout(function(){bTone(784,0.4,0.4);},500);
+}
+function rppgErr(msg){
+  document.getElementById("rppg-timer").textContent="&#9888; "+msg;
+  document.getElementById("rppg-btn").style.display="block";
+  document.getElementById("rppg-btn").textContent="もう一度計測";
+}
+function useRppgResult(){
+  if(!rppgHR)return;
+  D.hrR={hr:rppgHR,hrv:rppgHRV};
+  D.skipHR=false;
+  D.breathType=BM===0?"ベースライン(rPPG)":"コヒーレント(rPPG)";
+  D.breathDur=BCFG[BM].dur;
+  D.qa=[];curQ=0;go("q");renderQ();
 }
 </script>
 </body>
