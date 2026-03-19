@@ -673,7 +673,7 @@ function computeAndShow(){
     level='やや低め';color='#BA7517';
     summary='軽度のストレス傾向があります。呼吸や休息を意識することで改善できます。';
     bullets=['心拍のリズムが少し乱れており、自律神経がやや緊張気味です','頭や体が少し張り詰めている可能性があります','深呼吸（吸う6秒・吐く6秒）を試すとすぐに楽になることがあります','次のAliveセッションでさらに詳しく確認しましょう'];
-    staffInterp='SCLまたはHRVに軽度の乱れ。Smoothnessを優先フィードバックに設定推奨。呼吸ペーサー活用を検討。';
+    staffInterp='HRVに軽度の乱れ。呼吸ガイド（コヒーレント）の活用を推奨。';
   } else {
     level='要注意';color='#D85A30';
     summary='ストレス負荷が高い状態です。無理せず、今日は特に休息を大切にしてください。';
@@ -725,11 +725,11 @@ function renderResult(sess){
     </div>`).join('');
 
   const rows=[
-    ['LF/HF 推定',sess.lf_hf||'--','LF/HF 1〜2が理想。高いほど交感神経優位'],
-    ['気分（自己評価）',sess.valence+'/5','3以下は気分低下傾向。Alive Valenceと合わせて確認'],
-    ['落ち着き（自己評価）',sess.arousal+'/5','1〜2は頭が騒がしい状態。Smoothnessと比較'],
-    ['活力（自己評価）',sess.smoothness+'/5','1〜2はエネルギー枯渇の可能性'],
-    ['リラックス度（自己評価）',sess.scl+'/5','1〜2は高緊張状態。SCLと合わせて確認'],
+    ['LF/HF 推定',sess.lf_hf||'--',(function(){var age=sess.age||0;var g=sess.gender||'';var ranges={male:{20:'1.0〜3.5',30:'1.0〜3.0',40:'1.0〜3.5',50:'1.2〜4.0',60:'1.5〜5.0',70:'1.5〜6.0'},female:{20:'0.8〜2.5',30:'0.8〜2.5',40:'0.9〜3.0',50:'1.0〜3.5',60:'1.2〜4.5',70:'1.3〜5.5'}};var comments={20:'若年男性はやや交感神経優位の場合も',30:'ストレスによる上昇が起きやすい年代',40:'HF低下によりLF/HF上昇傾向',50:'閉経後女性はLF/HF上昇しやすい',60:'HF低下に伴い相対的にLF/HF上昇',70:'高値でも年齢相応の場合がある'};var decade=age<20?20:age<30?20:age<40?30:age<50?40:age<60?50:age<70?60:70;var gKey=g==='female'?'female':'male';var ref=ranges[gKey][decade]||'1.0〜3.5';var cmt=comments[decade]||'';return '年齢相応参考値('+gKey===( 'female'?'女性':'男性')+'):'+ref+(cmt?' / '+cmt:'');})()],
+    ['気分（自己評価）',sess.valence+'/5','3以下は気分低下傾向。次回セッションで詳しく確認'],
+    ['落ち着き（自己評価）',sess.arousal+'/5','1〜2は頭が騒がしい状態。呼吸ガイドの活用を検討'],
+    ['活力（自己評価）',sess.smoothness+'/5','1〜2はエネルギー枯渇の可能性。睡眠・生活習慣を確認'],
+    ['リラックス度（自己評価）',sess.scl+'/5','1〜2は高緊張状態。コヒーレント呼吸の導入を検討'],
   ];
   let html=`<div class="staff-summary">${sess.staffInterp}</div>`;
   html+=rows.map(r=>`<div class="staff-row"><div><div class="staff-key">${r[0]}</div><div class="staff-interpret">${r[2]}</div></div><div class="staff-val">${r[1]}</div></div>`).join('');
